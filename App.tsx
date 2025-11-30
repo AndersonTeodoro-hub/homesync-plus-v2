@@ -27,6 +27,7 @@ import { Login } from './components/Login';
 import { PremiumModal } from './components/PremiumModal';
 import { LanguageModal } from './components/LanguageModal';
 import { LandingPage } from './components/LandingPage';
+import { Onboarding } from './components/Onboarding';
 
 declare global {
   interface AIStudio {
@@ -39,8 +40,9 @@ declare global {
 }
 
 const App: React.FC = () => {
-  const [showLanding, setShowLanding] = useState(true); // Initial State: Show Landing Page
+  const [showLanding, setShowLanding] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasOnboarded, setHasOnboarded] = useState(false); // New Onboarding State
   const [userName, setUserName] = useState('');
   const [activeView, setActiveView] = useState<View>('home');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -122,13 +124,15 @@ const App: React.FC = () => {
   useEffect(() => {
     const storedUser = localStorage.getItem('async_user');
     const storedLang = localStorage.getItem('async_lang') as Language;
+    const storedOnboarding = localStorage.getItem('sync_onboarding_complete');
     
     if (storedUser) { 
         setUserName(storedUser); 
         setIsAuthenticated(true); 
-        setShowLanding(false); // Skip landing if already logged in
+        setShowLanding(false); 
     }
     if (storedLang) { setNativeLanguage(storedLang); }
+    if (storedOnboarding === 'true') { setHasOnboarded(true); }
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
@@ -140,8 +144,15 @@ const App: React.FC = () => {
 
   const handleLogin = (name: string) => { localStorage.setItem('async_user', name); setUserName(name); setIsAuthenticated(true); };
 
+  const handleOnboardingComplete = () => {
+      localStorage.setItem('sync_onboarding_complete', 'true');
+      setHasOnboarded(true);
+  };
+
   const handleLogout = () => {
       localStorage.removeItem('async_user');
+      // We don't reset onboarding so they don't see it again every logout, unless we want strict reset.
+      // Keeping onboarding state persists profile. To reset strictly: localStorage.removeItem('sync_onboarding_complete');
       setIsAuthenticated(false);
       setUserName('');
       setShowLanding(true);
@@ -151,7 +162,6 @@ const App: React.FC = () => {
   const handleLanguageChange = (lang: Language) => {
       setNativeLanguage(lang);
       localStorage.setItem('async_lang', lang);
-      // If voice is active, restart it to apply new prompt
       if (appState === 'active') {
           stopVoiceSession(false);
           setTimeout(() => startVoiceSession(), 500);
@@ -162,7 +172,6 @@ const App: React.FC = () => {
   const findContactNumber = (name: string): string | null => {
       try {
           const saved = localStorage.getItem('familyContacts');
-          // Contatos padrão se não houver salvos
           const defaultContacts: Contact[] = [
             { id: 1, name: 'Cris', relationship: 'Esposa', phone: '5511999999999', whatsapp: '5511999999999', email: 'cris@email.com' },
             { id: 2, name: 'Filho', relationship: 'Filho', phone: '5511988888888', whatsapp: '5511988888888', email: '' }
@@ -173,7 +182,6 @@ const App: React.FC = () => {
           
           if (!contact) return null;
 
-          // Limpeza rigorosa para formato E.164 (ex: +55...)
           let cleanNumber = contact.phone.replace(/[^0-9+]/g, '');
           if (!cleanNumber.startsWith('+')) {
               cleanNumber = '+55' + cleanNumber;
@@ -194,7 +202,6 @@ const App: React.FC = () => {
               const contactNumber = findContactNumber(command.contact);
               
               if (contactNumber) {
-                  // Remove o '+' para o link do WhatsApp
                   const waNumber = contactNumber.replace('+', '');
                   const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(command.message)}`;
                   
@@ -211,11 +218,9 @@ const App: React.FC = () => {
               const contactName = command.contact;
 
               if (contactNumber) {
-                  // 1. Feedback visual imediato
                   setActiveCall({ contact: contactName, status: 'Iniciando discagem...', color: 'bg-black' });
 
                   try {
-                      // 2. Chamar Backend Serverless (Twilio)
                       const response = await fetch('/api/twilio-webhook', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
@@ -228,10 +233,8 @@ const App: React.FC = () => {
                       const data = await response.json();
 
                       if (data.mode === 'real') {
-                          // Sucesso Real (Twilio configurado)
                           setActiveCall({ contact: contactName, status: 'Chamando via Rede Telefônica...', sid: data.sid, color: 'bg-yellow-900' });
                       } else {
-                          // Modo Simulação (Fallback)
                           setActiveCall({ contact: contactName, status: 'Simulando Chamada (Modo Beta)...', color: 'bg-blue-900' });
                           setTimeout(() => setActiveCall(null), 6000);
                       }
@@ -413,7 +416,12 @@ const App: React.FC = () => {
       return <Login onLogin={handleLogin} />;
   }
 
-  // --- 3. MAIN APP ---
+  // --- 3. ONBOARDING (Gate) ---
+  if (!hasOnboarded) {
+      return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
+
+  // --- 4. MAIN APP ---
   return (
     <div className="flex h-screen font-sans overflow-hidden relative">
       {activeCall && (
