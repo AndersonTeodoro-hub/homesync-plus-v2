@@ -26,6 +26,7 @@ import { ShareModal } from './components/ShareModal';
 import { Login } from './components/Login';
 import { PremiumModal } from './components/PremiumModal';
 import { LanguageModal } from './components/LanguageModal';
+import { LandingPage } from './components/LandingPage';
 
 declare global {
   interface AIStudio {
@@ -38,6 +39,7 @@ declare global {
 }
 
 const App: React.FC = () => {
+  const [showLanding, setShowLanding] = useState(true); // Initial State: Show Landing Page
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userName, setUserName] = useState('');
   const [activeView, setActiveView] = useState<View>('home');
@@ -107,7 +109,11 @@ const App: React.FC = () => {
     const storedUser = localStorage.getItem('async_user');
     const storedLang = localStorage.getItem('async_lang') as Language;
     
-    if (storedUser) { setUserName(storedUser); setIsAuthenticated(true); }
+    if (storedUser) { 
+        setUserName(storedUser); 
+        setIsAuthenticated(true); 
+        setShowLanding(false); // Skip landing if already logged in
+    }
     if (storedLang) { setNativeLanguage(storedLang); }
 
     try {
@@ -375,8 +381,17 @@ const App: React.FC = () => {
     }
   }
 
-  if (!isAuthenticated) return <Login onLogin={handleLogin} />;
+  // --- 1. LANDING PAGE (Gate) ---
+  if (showLanding && !isAuthenticated) {
+      return <LandingPage onEnter={() => setShowLanding(false)} />;
+  }
 
+  // --- 2. AUTHENTICATION ---
+  if (!isAuthenticated) {
+      return <Login onLogin={handleLogin} />;
+  }
+
+  // --- 3. MAIN APP ---
   return (
     <div className="flex h-screen font-sans overflow-hidden relative">
       {activeCall && (
