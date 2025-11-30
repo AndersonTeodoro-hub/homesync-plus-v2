@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat, Modality, Blob } from '@google/genai';
-import { SYSTEM_INSTRUCTION, LIVE_MODEL_NAME, KIDS_COMPANION_INSTRUCTION, ENGLISH_TUTOR_INSTRUCTION, CHEF_INSTRUCTION, CFO_INSTRUCTION, ORGANIZER_INSTRUCTION, SHOPPING_INSTRUCTION } from './constants';
+import { SYSTEM_INSTRUCTION, LIVE_MODEL_NAME, KIDS_COMPANION_INSTRUCTION, ENGLISH_TUTOR_INSTRUCTION, CHEF_INSTRUCTION, CFO_INSTRUCTION, ORGANIZER_INSTRUCTION, SHOPPING_INSTRUCTION, BABYSITTER_INSTRUCTION } from './constants';
 import type { View, Message, Session, Contact, Language } from './types';
 import { decode, encode, decodeAudioData } from './utils';
 import { Sidebar } from './components/Sidebar';
@@ -189,6 +189,10 @@ const App: React.FC = () => {
               baseInstruction = SHOPPING_INSTRUCTION;
               startupMessage = `Diga 'Olá! Sync Shopper aqui. O que falta na despensa hoje?'`;
               break;
+          case 'babysitter':
+              baseInstruction = BABYSITTER_INSTRUCTION;
+              startupMessage = `Diga 'Olá! Sync Nanny ativa. O ambiente está seguro. Quer que eu conte uma história?'`;
+              break;
       }
 
       // INJEÇÃO DE CONTEXTO DE IDIOMA
@@ -264,7 +268,7 @@ const App: React.FC = () => {
         case 'shopping': return <Shopping voiceState={voiceState} startVoiceSession={toggleVoiceSession} />;
         case 'learning': return <Learning />;
         case 'essence': return <Essence />;
-        case 'babysitter': return <Babysitter />;
+        case 'babysitter': return <Babysitter voiceState={voiceState} startVoiceSession={toggleVoiceSession} />;
         case 'text-chat': return <TextChat messages={messages} isLoading={isLoading} error={error} onSendMessage={() => {}} onFeedback={() => {}} onShareApp={() => {}} />;
         case 'nutritionist': return <Nutritionist messages={messages} isLoading={isLoading} error={error} onSendMessage={() => {}} onFeedback={() => {}} onShareApp={() => {}} />;
         case 'personal-trainer': return <PersonalTrainer messages={messages} isLoading={isLoading} error={error} onSendMessage={() => {}} onFeedback={() => {}} onShareApp={() => {}} />;
