@@ -19,7 +19,7 @@ export const Babysitter: React.FC<BabysitterProps> = ({ voiceState, startVoiceSe
     const audioContextRef = useRef<AudioContext | null>(null);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const microphoneRef = useRef<MediaStreamAudioSourceNode | null>(null);
-    const requestRef = useRef<number>();
+    const requestRef = useRef<number | null>(null);
     const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // EMERGENCY CONTACT (Simulated)

@@ -112,17 +112,97 @@ const App: React.FC = () => {
       }
   };
 
+  // --- Helper: Find Contact ---
+  const findContactNumber = (name: string): string | null => {
+      try {
+          const saved = localStorage.getItem('familyContacts');
+          // Contatos padrão se não houver salvos
+          const defaultContacts: Contact[] = [
+            { id: 1, name: 'Cris', relationship: 'Esposa', phone: '5511999999999', whatsapp: '5511999999999', email: 'cris@email.com' },
+            { id: 2, name: 'Filho', relationship: 'Filho', phone: '5511988888888', whatsapp: '5511988888888', email: '' }
+          ];
+          
+          const contacts: Contact[] = saved ? JSON.parse(saved) : defaultContacts;
+          const contact = contacts.find(c => c.name.toLowerCase().includes(name.toLowerCase()));
+          
+          if (!contact) return null;
+
+          // Limpeza rigorosa para formato E.164 (ex: +55...)
+          let cleanNumber = contact.phone.replace(/[^0-9+]/g, '');
+          if (!cleanNumber.startsWith('+')) {
+              cleanNumber = '+55' + cleanNumber;
+          }
+          return cleanNumber;
+      } catch {
+          return null;
+      }
+  };
+
+  // --- Helper: Execute AI Action Command ---
   const executeAICommand = async (jsonString: string) => {
       try {
           const command = JSON.parse(jsonString);
           console.log("Executando comando IA:", command);
+
           if (command.action === 'whatsapp') {
-             const url = `https://wa.me/?text=${encodeURIComponent(command.message)}`; 
-             window.open(url, '_blank');
-          } else if (command.action === 'call') {
-             setActiveCall({ contact: command.contact, status: 'Chamando...', color: 'bg-black' });
+              const contactNumber = findContactNumber(command.contact);
+              
+              if (contactNumber) {
+                  // Remove o '+' para o link do WhatsApp
+                  const waNumber = contactNumber.replace('+', '');
+                  const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(command.message)}`;
+                  
+                  setTimeout(() => {
+                      window.open(url, '_blank');
+                  }, 2000);
+              } else {
+                  console.warn(`Contato não encontrado: ${command.contact}`);
+                  setTimeout(() => setActiveView('family'), 2000);
+              }
+          } 
+          else if (command.action === 'call') {
+              const contactNumber = findContactNumber(command.contact);
+              const contactName = command.contact;
+
+              if (contactNumber) {
+                  // 1. Feedback visual imediato
+                  setActiveCall({ contact: contactName, status: 'Iniciando discagem...', color: 'bg-black' });
+
+                  try {
+                      // 2. Chamar Backend Serverless (Twilio)
+                      const response = await fetch('/api/twilio-webhook', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                              to: contactNumber,
+                              message: `Olá ${contactName}. Aqui é a Async Plus. ${command.context || 'Tenho um recado importante.'}`
+                          })
+                      });
+
+                      const data = await response.json();
+
+                      if (data.mode === 'real') {
+                          // Sucesso Real (Twilio configurado)
+                          setActiveCall({ contact: contactName, status: 'Chamando via Rede Telefônica...', sid: data.sid, color: 'bg-yellow-900' });
+                      } else {
+                          // Modo Simulação (Fallback)
+                          setActiveCall({ contact: contactName, status: 'Simulando Chamada (Modo Beta)...', color: 'bg-blue-900' });
+                          setTimeout(() => setActiveCall(null), 6000);
+                      }
+
+                  } catch (err) {
+                      console.log("Call fallback:", err);
+                      setActiveCall({ contact: contactName, status: 'Erro na conexão.', color: 'bg-red-900' });
+                      setTimeout(() => setActiveCall(null), 4000);
+                  }
+              } else {
+                  alert(`Não encontrei o número de ${command.contact}. Por favor, adicione em Família.`);
+                  setActiveView('family');
+              }
           }
-      } catch (e) { console.error("Falha comando IA", e); }
+      } catch (e) {
+          console.error("Falha ao processar comando JSON da IA", e);
+      }
   };
 
   const playAudioData = async (audioData: string) => {
