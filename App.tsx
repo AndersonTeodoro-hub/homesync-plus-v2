@@ -89,6 +89,20 @@ const App: React.FC = () => {
     };
   }, []);
 
+  const handleInstallClick = () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      installPrompt.userChoice.then((choiceResult: any) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+          setInstallPrompt(null);
+        } else {
+          console.log('User dismissed the install prompt');
+        }
+      });
+    }
+  };
+
   useEffect(() => {
     let interval: any;
     if (activeCall && activeCall.sid) {
@@ -125,6 +139,14 @@ const App: React.FC = () => {
   }, []);
 
   const handleLogin = (name: string) => { localStorage.setItem('async_user', name); setUserName(name); setIsAuthenticated(true); };
+
+  const handleLogout = () => {
+      localStorage.removeItem('async_user');
+      setIsAuthenticated(false);
+      setUserName('');
+      setShowLanding(true);
+      setActiveView('home');
+  };
 
   const handleLanguageChange = (lang: Language) => {
       setNativeLanguage(lang);
@@ -383,7 +405,7 @@ const App: React.FC = () => {
 
   // --- 1. LANDING PAGE (Gate) ---
   if (showLanding && !isAuthenticated) {
-      return <LandingPage onEnter={() => setShowLanding(false)} />;
+      return <LandingPage onEnter={() => setShowLanding(false)} installPrompt={installPrompt} onInstall={handleInstallClick} />;
   }
 
   // --- 2. AUTHENTICATION ---
