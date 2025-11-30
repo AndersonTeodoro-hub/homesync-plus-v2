@@ -1,15 +1,16 @@
+
 import React, { useState } from 'react';
 import type { View } from '../types';
 import { Avatar } from './Avatar';
 import { CapabilitiesModal } from './CapabilitiesModal';
-import { MicIcon, CameraIcon, SparklesIcon, FamilyIcon, EnglishIcon, BabyIcon, NutritionistIcon, PersonalTrainerIcon, HeartIcon, BalloonIcon } from './Icons';
+import { MicIcon, CameraIcon, SparklesIcon, FamilyIcon, EnglishIcon, BabyIcon, NutritionistIcon, PersonalTrainerIcon, HeartIcon, BalloonIcon, GlobeIcon } from './Icons';
 
 type AppState = 'sleeping' | 'active';
 type VoiceState = 'idle' | 'listening' | 'speaking' | 'thinking';
 
-interface HomeProps { appState: AppState; voiceState: VoiceState; error: string | null; setView: (view: View) => void; startVoiceSession: () => void; onShareApp: () => void; }
+interface HomeProps { appState: AppState; voiceState: VoiceState; error: string | null; setView: (view: View) => void; startVoiceSession: () => void; onShareApp: () => void; onOpenLanguage: () => void; }
 
-export const Home: React.FC<HomeProps> = ({ appState, voiceState, error, setView, startVoiceSession, onShareApp }) => {
+export const Home: React.FC<HomeProps> = ({ appState, voiceState, error, setView, startVoiceSession, onShareApp, onOpenLanguage }) => {
   const [isCapabilitiesOpen, setIsCapabilitiesOpen] = useState(false);
   const getStatusText = () => { if (appState === 'sleeping') return "Dormindo"; switch (voiceState) { case 'listening': return "Ouvindo..."; case 'speaking': return "Falando..."; case 'thinking': return "Pensando..."; default: return "Olá! Como posso ajudar?"; } };
   const getStatusEmoji = () => { if (appState === 'sleeping') return "😴"; switch (voiceState) { case 'listening': return "👂"; case 'speaking': return "✨"; case 'thinking': return "⚡"; default: return "👋"; } };
@@ -30,6 +31,18 @@ export const Home: React.FC<HomeProps> = ({ appState, voiceState, error, setView
             <div className="absolute top-4 right-4 z-20">
                 <span className="bg-white/5 backdrop-blur-md border border-white/10 text-[10px] md:text-xs font-bold px-3 py-1 rounded-full text-blue-200 shadow-lg flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>BETA VIP</span>
             </div>
+            
+            {/* Minimalist Language Button */}
+            <div className="absolute top-5 left-16 md:left-6 z-20">
+                 <button 
+                    onClick={onOpenLanguage} 
+                    className="p-2 rounded-full bg-white/10 backdrop-blur-md border border-white/5 text-blue-200 hover:text-white hover:bg-white/20 transition-all shadow-lg"
+                    aria-label="Alterar Idioma Nativo"
+                 >
+                    <GlobeIcon className="w-5 h-5" />
+                 </button>
+            </div>
+
             <header className="relative z-10 pt-4 pb-1 text-center">
                 <h1 className="text-2xl font-bold tracking-tight flex items-center justify-center gap-2 text-white"><span className="text-pink-500">★</span> Async <span className="text-pink-500 font-light">+</span></h1>
             </header>
@@ -64,7 +77,7 @@ export const Home: React.FC<HomeProps> = ({ appState, voiceState, error, setView
                     </div>
                 )}
             </div>
-            <CapabilitiesModal isOpen={isCapabilitiesOpen} onClose={() => setIsCapabilitiesOpen(false)} />
+            <CapabilitiesModal isOpen={isCapabilitiesOpen} onClose={() => setIsCapabilitiesOpen(false)} setView={setView} />
         </div>
     );
 };

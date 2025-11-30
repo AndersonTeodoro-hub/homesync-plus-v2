@@ -167,7 +167,7 @@ const App: React.FC = () => {
       switch (activeView) {
           case 'sync-kids':
               baseInstruction = KIDS_COMPANION_INSTRUCTION;
-              startupMessage = `Diga 'Oi amiguinho ${currentUser}! Eu sou a Sync Kids. Vamos brincar?'`;
+              startupMessage = `Diga 'Oi amiguinho ${currentUser}! Eu sou a Sync Kids. Vamos começar nossa aventura?'`;
               break;
           case 'english-course':
               baseInstruction = ENGLISH_TUTOR_INSTRUCTION;
@@ -255,7 +255,7 @@ const App: React.FC = () => {
   // ROTEAMENTO DE COMPONENTES
   const renderActiveView = () => {
     switch(activeView) {
-        case 'sync-kids': return <SyncKids />;
+        case 'sync-kids': return <SyncKids voiceState={voiceState} startVoiceSession={toggleVoiceSession} />;
         case 'english-course': return <EnglishCourse voiceState={voiceState} startVoiceSession={toggleVoiceSession} />;
         case 'dashboard': return <Dashboard setView={handleSetView} />;
         case 'finances': return <Finances voiceState={voiceState} startVoiceSession={toggleVoiceSession} />;
@@ -269,7 +269,7 @@ const App: React.FC = () => {
         case 'nutritionist': return <Nutritionist messages={messages} isLoading={isLoading} error={error} onSendMessage={() => {}} onFeedback={() => {}} onShareApp={() => {}} />;
         case 'personal-trainer': return <PersonalTrainer messages={messages} isLoading={isLoading} error={error} onSendMessage={() => {}} onFeedback={() => {}} onShareApp={() => {}} />;
         case 'family': return <Family />;
-        case 'home': default: return <Home appState={appState} voiceState={voiceState} error={error} setView={handleSetView} startVoiceSession={startVoiceSession} onShareApp={handleShareApp} />;
+        case 'home': default: return <Home appState={appState} voiceState={voiceState} error={error} setView={handleSetView} startVoiceSession={startVoiceSession} onShareApp={handleShareApp} onOpenLanguage={() => setIsLanguageModalOpen(true)} />;
     }
   }
 
@@ -285,7 +285,7 @@ const App: React.FC = () => {
           </div>
       )}
       <div className={`fixed inset-y-0 left-0 w-64 z-30 transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <Sidebar activeView={activeView} setView={handleSetView} onShareApp={handleShareApp} onOpenLanguage={() => setIsLanguageModalOpen(true)} />
+        <Sidebar activeView={activeView} setView={handleSetView} onShareApp={handleShareApp} />
       </div>
       {isSidebarOpen && <div className="fixed inset-0 bg-black/60 z-20 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
       <main className="flex-1 flex flex-col h-full relative font-sans">

@@ -7,7 +7,6 @@ interface SidebarProps {
   activeView: View;
   setView: (view: View) => void;
   onShareApp: () => void;
-  onOpenLanguage: () => void;
 }
 
 const menuItems = [
@@ -29,7 +28,7 @@ const menuItems = [
   { id: 'family', label: 'Família', icon: <FamilyIcon /> },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, onShareApp, onOpenLanguage }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, onShareApp }) => {
   return (
     <aside className="w-64 flex-shrink-0 bg-white flex flex-col h-screen overflow-y-auto border-r border-gray-200">
       <div className="p-4 border-b border-gray-200">
@@ -52,9 +51,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setView, onShareAp
         ))}
       </nav>
       <div className="p-4 border-t border-gray-200 mt-auto space-y-4">
-         <button onClick={onOpenLanguage} className="flex items-center justify-center space-x-2 w-full p-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors border border-blue-200 text-sm font-semibold shadow-sm">
-            <GlobeIcon className="w-5 h-5" /><span>Idioma Nativo</span>
-        </button>
         <a href="mailto:feedback@homesync.com" className="flex items-center justify-center space-x-2 w-full p-2.5 rounded-lg bg-yellow-50 hover:bg-yellow-100 text-yellow-700 transition-colors border border-yellow-200 text-sm font-semibold shadow-sm">
             <MessageIcon /><span>Feedback Beta</span>
         </a>
