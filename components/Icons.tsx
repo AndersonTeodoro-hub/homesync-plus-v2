@@ -56,14 +56,14 @@ export const TrashIcon = ({className}: {className?: string}) => <svg xmlns="http
 export const PencilIcon = ({className}: {className?: string}) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>;
 
 // --- SYNC PRIME IDENTITY ---
-// Nova Logo SVG Minimalista (Criação Exclusiva)
+// Logo Official - Sync Blue #247CFF
 export const SyncPrimeLogo = ({className}: {className?: string}) => (
   <div className={`${className || "w-8 h-8"} flex items-center justify-center`}>
     <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
       <defs>
         <linearGradient id="primeGradient" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#2563EB" /> {/* Blue 600 */}
-          <stop offset="100%" stopColor="#3B82F6" /> {/* Blue 500 */}
+          <stop offset="0%" stopColor="#247CFF" /> {/* Sync Blue Primary */}
+          <stop offset="100%" stopColor="#3B82F6" /> {/* Slightly lighter for depth */}
         </linearGradient>
       </defs>
       {/* S Shape Minimalista Tech */}
@@ -73,11 +73,10 @@ export const SyncPrimeLogo = ({className}: {className?: string}) => (
         strokeWidth="14" 
         strokeLinecap="round" 
         strokeLinejoin="round"
-        transform="translate(0, -12)" // Ajuste fino de centralização
+        transform="translate(0, -12)" 
       />
     </svg>
   </div>
 );
 
-// Deprecated (Removed) - replaced by SyncPrimeLogo
 export const AsyncLogoIcon = SyncPrimeLogo;
