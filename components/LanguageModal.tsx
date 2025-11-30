@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AsyncLogoIcon, GlobeIcon } from './Icons';
+import { SyncPrimeLogo, GlobeIcon } from './Icons';
 import type { Language } from '../types';
 
 interface LanguageModalProps {

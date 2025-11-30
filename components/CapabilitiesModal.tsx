@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import type { View } from '../types';
 import { 
     InventoryIcon, FinanceIcon, BabyIcon, LearnIcon, HeartIcon, 
-    NutritionistIcon, PersonalTrainerIcon, CheckCircleIcon, AsyncLogoIcon, 
+    NutritionistIcon, PersonalTrainerIcon, CheckCircleIcon, SyncPrimeLogo, 
     BalloonIcon, EnglishIcon
 } from './Icons';
 
@@ -121,7 +121,7 @@ export const CapabilitiesModal: React.FC<CapabilitiesModalProps> = ({ isOpen, on
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/5 bg-white/5">
             <div className="flex items-center gap-3">
-                <AsyncLogoIcon className="w-8 h-8 rounded-lg" />
+                <SyncPrimeLogo className="w-8 h-8 rounded-lg" />
                 <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                     {selectedCap ? 'Detalhes do Poder' : 'Meus Poderes'}
                 </h2>

@@ -33,6 +33,7 @@ declare global {
   }
   interface Window {
     aistudio?: AIStudio;
+    deferredPrompt?: any;
   }
 }
 
@@ -60,6 +61,9 @@ const App: React.FC = () => {
   const [nativeLanguage, setNativeLanguage] = useState<Language>('pt-BR');
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
 
+  // PWA Install Prompt State
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+
   const sessionRef = useRef<Promise<Session> | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const inputAudioContextRef = useRef<AudioContext | null>(null);
@@ -68,6 +72,20 @@ const App: React.FC = () => {
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const nextStartTimeRef = useRef<number>(0);
   const currentResponseTextRef = useRef<string>('');
+
+  useEffect(() => {
+    // Listen for PWA install event
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      window.deferredPrompt = e;
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
   useEffect(() => {
     let interval: any;
@@ -353,7 +371,7 @@ const App: React.FC = () => {
         case 'nutritionist': return <Nutritionist messages={messages} isLoading={isLoading} error={error} onSendMessage={() => {}} onFeedback={() => {}} onShareApp={() => {}} />;
         case 'personal-trainer': return <PersonalTrainer messages={messages} isLoading={isLoading} error={error} onSendMessage={() => {}} onFeedback={() => {}} onShareApp={() => {}} />;
         case 'family': return <Family />;
-        case 'home': default: return <Home appState={appState} voiceState={voiceState} error={error} setView={handleSetView} startVoiceSession={startVoiceSession} onShareApp={handleShareApp} onOpenLanguage={() => setIsLanguageModalOpen(true)} />;
+        case 'home': default: return <Home appState={appState} voiceState={voiceState} error={error} setView={handleSetView} startVoiceSession={startVoiceSession} onShareApp={handleShareApp} onOpenLanguage={() => setIsLanguageModalOpen(true)} installPrompt={installPrompt} />;
     }
   }
 
