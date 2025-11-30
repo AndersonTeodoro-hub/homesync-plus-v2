@@ -1,106 +1,199 @@
 
-import React, { useState } from 'react';
-import type { View } from '../types';
-import { Avatar } from './Avatar';
+import React, { useState, useEffect } from 'react';
+import type { View, Message } from '../types';
 import { CapabilitiesModal } from './CapabilitiesModal';
-import { MicIcon, CameraIcon, SparklesIcon, FamilyIcon, EnglishIcon, BabyIcon, NutritionistIcon, PersonalTrainerIcon, HeartIcon, BalloonIcon, GlobeIcon, DownloadIcon } from './Icons';
+import { 
+    MicIcon, CameraIcon, SparklesIcon, FamilyIcon, EnglishIcon, BabyIcon, 
+    NutritionistIcon, PersonalTrainerIcon, HeartIcon, BalloonIcon, GlobeIcon, 
+    DownloadIcon, SunIcon, MoonIcon, ClockIcon, SettingsIcon, CalendarIcon, 
+    ListBulletIcon, PhoneIcon, CheckCircleIcon, SyncPrimeLogo, UserCircleIcon
+} from './Icons';
 
 type AppState = 'sleeping' | 'active';
 type VoiceState = 'idle' | 'listening' | 'speaking' | 'thinking';
 
-interface HomeProps { appState: AppState; voiceState: VoiceState; error: string | null; setView: (view: View) => void; startVoiceSession: () => void; onShareApp: () => void; onOpenLanguage: () => void; installPrompt?: any; }
+interface HomeProps { 
+    appState: AppState; 
+    voiceState: VoiceState; 
+    error: string | null; 
+    setView: (view: View) => void; 
+    startVoiceSession: () => void; 
+    onShareApp: () => void; 
+    onOpenLanguage: () => void; 
+    installPrompt?: any;
+    messages?: Message[];
+    userName?: string;
+}
 
-export const Home: React.FC<HomeProps> = ({ appState, voiceState, error, setView, startVoiceSession, onShareApp, onOpenLanguage, installPrompt }) => {
+export const Home: React.FC<HomeProps> = ({ 
+    appState, voiceState, error, setView, startVoiceSession, 
+    onShareApp, onOpenLanguage, installPrompt, messages = [], userName = 'Usuário' 
+}) => {
   const [isCapabilitiesOpen, setIsCapabilitiesOpen] = useState(false);
-  const getStatusText = () => { if (appState === 'sleeping') return "Dormindo"; switch (voiceState) { case 'listening': return "Ouvindo..."; case 'speaking': return "Falando..."; case 'thinking': return "Pensando..."; default: return "Olá! Como posso ajudar?"; } };
-  const getStatusEmoji = () => { if (appState === 'sleeping') return "😴"; switch (voiceState) { case 'listening': return "👂"; case 'speaking': return "✨"; case 'thinking': return "⚡"; default: return "👋"; } };
+  const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'night'>('morning');
+
+  useEffect(() => {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 12) setTimeOfDay('morning');
+      else if (hour >= 12 && hour < 18) setTimeOfDay('afternoon');
+      else setTimeOfDay('night');
+  }, []);
 
   const handleInstallClick = () => {
     if (installPrompt) {
       installPrompt.prompt();
       installPrompt.userChoice.then((choiceResult: any) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the install prompt');
-        } else {
-          console.log('User dismissed the install prompt');
-        }
+        if (choiceResult.outcome === 'accepted') console.log('User accepted');
       });
     }
   };
 
-  const mainModules = [
-      { id: 'english-course', label: 'Inglês', icon: <EnglishIcon />, view: 'english-course' as View, color: 'bg-blue-600/20 text-blue-300 border-blue-500/30' },
-      { id: 'babysitter', label: 'Modo Babá', icon: <BabyIcon />, view: 'babysitter' as View, color: 'bg-pink-600/20 text-pink-300 border-pink-500/30' },
-      { id: 'sync-kids', label: 'Kids', icon: <BalloonIcon />, view: 'sync-kids' as View, color: 'bg-yellow-600/20 text-yellow-300 border-yellow-500/30' },
-      { id: 'nutritionist', label: 'Nutri', icon: <NutritionistIcon />, view: 'nutritionist' as View, color: 'bg-green-600/20 text-green-300 border-green-500/30' },
-      { id: 'personal-trainer', label: 'Treino', icon: <PersonalTrainerIcon />, view: 'personal-trainer' as View, color: 'bg-orange-600/20 text-orange-300 border-orange-500/30' },
-      { id: 'essence', label: 'Essência', icon: <HeartIcon />, view: 'essence' as View, color: 'bg-purple-600/20 text-purple-300 border-purple-500/30' },
-  ];
+  const getGreeting = () => {
+      if (timeOfDay === 'morning') return 'Bom dia';
+      if (timeOfDay === 'afternoon') return 'Boa tarde';
+      return 'Boa noite';
+  };
 
-    return (
-        <div className="flex flex-col h-full relative overflow-hidden bg-[#0f172a] text-white font-sans selection:bg-blue-500 selection:text-white">
-            <div className="absolute inset-0 bg-gradient-to-b from-[#1e293b] to-[#0f172a] pointer-events-none" />
-            <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[60%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
-            <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-                <span className="bg-white/5 backdrop-blur-md border border-white/10 text-[10px] md:text-xs font-bold px-3 py-1 rounded-full text-blue-200 shadow-lg flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>BETA PRIME</span>
-            </div>
-            
-            {/* Minimalist Language Button */}
-            <div className="absolute top-5 left-16 md:left-6 z-20">
-                 <button 
-                    onClick={onOpenLanguage} 
-                    className="p-2 rounded-full bg-white/10 backdrop-blur-md border border-white/5 text-blue-200 hover:text-white hover:bg-white/20 transition-all shadow-lg"
-                    aria-label="Alterar Idioma Nativo"
-                 >
-                    <GlobeIcon className="w-5 h-5" />
-                 </button>
+  const getSuggestion = () => {
+      if (timeOfDay === 'morning') return { text: "Sua primeira tarefa é às 09h. Quer revisar o dia?", action: "Revisar Agenda", icon: <CalendarIcon /> };
+      if (timeOfDay === 'afternoon') return { text: "Hora do almoço. Sugerir algo leve?", action: "Ver Opções", icon: <NutritionistIcon /> };
+      return { text: "Dia encerrado. Ativar modo 'Descompressão'?", action: "Ativar", icon: <MoonIcon /> };
+  };
+
+  const suggestion = getSuggestion();
+
+  return (
+        <div className="flex flex-col h-full relative overflow-hidden bg-[#f8f9fa] text-slate-800 font-sans">
+            {/* Background Ambience */}
+            <div className="absolute inset-0 z-0">
+                <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-100 rounded-full blur-3xl opacity-60"></div>
+                <div className="absolute top-1/2 -right-24 w-80 h-80 bg-cyan-100 rounded-full blur-3xl opacity-60"></div>
             </div>
 
-            <header className="relative z-10 pt-4 pb-1 text-center">
-                <h1 className="text-3xl font-black tracking-tighter flex items-center justify-center gap-2 text-white italic">
-                    SYNC <span className="text-blue-500 not-italic">PRIME</span>
-                </h1>
+            {/* --- HEADER --- */}
+            <header className="relative z-20 px-6 pt-6 pb-2 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <SyncPrimeLogo className="w-8 h-8 drop-shadow-sm" />
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{getGreeting()},</p>
+                        <h1 className="text-xl font-bold text-slate-900">{userName}</h1>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button onClick={onOpenLanguage} className="p-2 rounded-full bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all text-blue-600">
+                        <GlobeIcon className="w-5 h-5" />
+                    </button>
+                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center border-2 border-white shadow-sm">
+                        <UserCircleIcon className="w-6 h-6 text-slate-500" />
+                    </div>
+                </div>
             </header>
-            <main className="relative z-10 flex-1 flex flex-col items-center justify-start pt-4 px-4 overflow-y-auto custom-scrollbar">
-                <div className="relative z-20 w-full max-w-[320px] h-[360px] flex-shrink-0 flex items-center justify-center mb-2">
-                    <Avatar role="model" isSleeping={appState === 'sleeping'} voiceState={voiceState} />
-                </div>
-                <div className="flex flex-col items-center gap-2 mb-6">
-                    <div className="px-4 py-1 bg-white/5 border border-white/10 rounded-full flex items-center gap-2 shadow-sm backdrop-blur-md">
-                        <span className="text-sm animate-pulse">{getStatusEmoji()}</span><span className="text-xs font-semibold text-gray-300 uppercase tracking-wide">{getStatusText()}</span>
+
+            <main className="relative z-10 flex-1 overflow-y-auto px-6 py-4 custom-scrollbar space-y-8">
+                
+                {/* --- HERO ORB (Voice Trigger) --- */}
+                <div className="flex flex-col items-center justify-center py-6">
+                    <div className="relative group cursor-pointer" onClick={startVoiceSession}>
+                        {/* Pulse Rings */}
+                        <div className={`absolute inset-0 bg-blue-500 rounded-full opacity-10 blur-xl transition-all duration-1000 ${voiceState === 'listening' ? 'scale-150 animate-pulse' : 'scale-100'}`}></div>
+                        <div className={`absolute inset-0 bg-gradient-to-tr from-blue-400 to-cyan-300 rounded-full blur-md opacity-40 transition-all duration-1000 ${voiceState === 'speaking' ? 'scale-125' : 'scale-100'}`}></div>
+                        
+                        {/* Main Orb */}
+                        <div className={`relative w-40 h-40 rounded-full bg-gradient-to-br from-[#247CFF] to-cyan-500 flex items-center justify-center shadow-[0_20px_50px_rgba(36,124,255,0.3)] border-4 border-white/20 transition-all duration-300 transform group-hover:scale-105 active:scale-95 ${voiceState === 'listening' ? 'animate-bounce-slow' : ''}`}>
+                            {voiceState === 'idle' && <MicIcon className="w-12 h-12 text-white" />}
+                            {voiceState === 'listening' && <div className="flex gap-1 h-8 items-end"><span className="w-1.5 bg-white animate-[bounce_1s_infinite] h-4"></span><span className="w-1.5 bg-white animate-[bounce_1.2s_infinite] h-8"></span><span className="w-1.5 bg-white animate-[bounce_0.8s_infinite] h-6"></span></div>}
+                            {voiceState === 'thinking' && <SparklesIcon className="w-12 h-12 text-white animate-spin" />}
+                            {voiceState === 'speaking' && <div className="w-20 h-20 bg-white/20 rounded-full animate-ping"></div>}
+                        </div>
+
+                        {/* Status Label */}
+                        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                            <span className={`text-sm font-bold tracking-wide transition-colors ${voiceState === 'idle' ? 'text-gray-400' : 'text-blue-600'}`}>
+                                {voiceState === 'idle' ? "Toque para falar" : voiceState === 'listening' ? "Ouvindo..." : voiceState === 'thinking' ? "Processando..." : "Falando..."}
+                            </span>
+                        </div>
                     </div>
-                    <button onClick={() => setIsCapabilitiesOpen(true)} className="flex items-center gap-1.5 text-[10px] text-blue-300 hover:text-white transition-colors"><SparklesIcon /><span>Ver poderes</span></button>
                 </div>
 
-                {/* Install App Banner */}
+                {/* --- SMART SUGGESTION --- */}
+                <div className="bg-white/60 backdrop-blur-md border border-white/50 p-4 rounded-2xl shadow-sm flex items-center justify-between mt-8">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                            {React.cloneElement(suggestion.icon as React.ReactElement<{ className?: string }>, { className: "w-5 h-5" })}
+                        </div>
+                        <p className="text-sm font-medium text-slate-700 leading-tight max-w-[180px]">{suggestion.text}</p>
+                    </div>
+                    <button className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">
+                        {suggestion.action}
+                    </button>
+                </div>
+
+                {/* --- QUICK ACTIONS --- */}
+                <div className="grid grid-cols-2 gap-3">
+                    <button onClick={() => setView('tasks')} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 hover:shadow-md transition-shadow group">
+                        <ListBulletIcon className="w-6 h-6 text-indigo-500 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-gray-600">Tarefas</span>
+                    </button>
+                    <button onClick={() => setView('family')} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 hover:shadow-md transition-shadow group">
+                        <PhoneIcon className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-gray-600">Ligar</span>
+                    </button>
+                    <button onClick={() => setView('finances')} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 hover:shadow-md transition-shadow group">
+                        <div className="w-6 h-6 rounded-full border-2 border-orange-400 flex items-center justify-center text-[10px] font-bold text-orange-400">$</div>
+                        <span className="text-xs font-bold text-gray-600">Finanças</span>
+                    </button>
+                    <button onClick={() => setIsCapabilitiesOpen(true)} className="bg-blue-600 p-4 rounded-2xl shadow-lg shadow-blue-200 flex flex-col items-center gap-2 hover:bg-blue-700 transition-colors group">
+                        <SparklesIcon className="w-6 h-6 text-white group-hover:rotate-12 transition-transform" />
+                        <span className="text-xs font-bold text-white">Explorar</span>
+                    </button>
+                </div>
+
+                {/* --- RECENT HISTORY --- */}
+                <div>
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <ClockIcon className="w-4 h-4 text-gray-400" /> Recentes
+                        </h3>
+                        <span className="text-[10px] font-bold text-blue-600 cursor-pointer">Ver tudo</span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                        {messages.length === 0 ? (
+                            <div className="text-center py-6 text-gray-400 text-xs italic bg-gray-50 rounded-xl border border-gray-100">
+                                Nenhuma atividade recente.
+                            </div>
+                        ) : (
+                            messages.slice(-3).reverse().map((msg) => (
+                                <div key={msg.id} className="flex gap-3 items-start p-3 rounded-xl hover:bg-white transition-colors border border-transparent hover:border-gray-100">
+                                    <div className={`w-2 h-full rounded-full self-stretch ${msg.role === 'user' ? 'bg-gray-300' : 'bg-blue-500'}`}></div>
+                                    <div className="flex-1">
+                                        <p className="text-xs font-bold text-gray-900 mb-0.5">{msg.role === 'user' ? 'Você' : 'Sync'}</p>
+                                        <p className="text-xs text-gray-500 line-clamp-1">{msg.text}</p>
+                                    </div>
+                                    <span className="text-[10px] text-gray-400 whitespace-nowrap">Agora</span>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Install Banner (PWA) */}
                 {installPrompt && (
-                   <button onClick={handleInstallClick} className="mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2 rounded-full flex items-center gap-2 shadow-xl hover:scale-105 transition-transform animate-fade-in border border-white/10">
-                      <DownloadIcon className="w-4 h-4 text-white" />
-                      <span className="font-bold text-sm">Instalar App</span>
-                   </button>
-                )}
-
-                <div className="w-full max-w-md grid grid-cols-3 gap-3 mb-20">
-                    {mainModules.map((mod) => (
-                        <button key={mod.id} onClick={() => setView(mod.view)} className={`flex flex-col items-center justify-center p-3 rounded-2xl border backdrop-blur-sm transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg ${mod.color}`}>
-                            <div className="w-8 h-8 mb-1">{mod.icon}</div><span className="text-xs font-bold text-white/90">{mod.label}</span>
+                    <div className="mt-4 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-4 text-white flex items-center justify-between shadow-lg">
+                        <div>
+                            <p className="font-bold text-sm">Instalar App</p>
+                            <p className="text-xs text-gray-400">Acesso rápido na tela inicial.</p>
+                        </div>
+                        <button onClick={handleInstallClick} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                            <DownloadIcon className="w-5 h-5" />
                         </button>
-                    ))}
-                </div>
-                {error && <div className="mt-2 bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-2 rounded-lg text-xs text-center">{error}</div>}
-            </main>
-            <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center items-center gap-6 pointer-events-none">
-                {appState === 'sleeping' && (
-                    <div className="flex items-center gap-6 pointer-events-auto">
-                        <button onClick={() => setView('family')} className="w-12 h-12 rounded-full bg-[#1e293b]/90 backdrop-blur text-slate-400 hover:text-white hover:bg-[#334155] border border-white/10 shadow-xl flex items-center justify-center transition-all"><FamilyIcon /></button>
-                        <button onClick={startVoiceSession} className="relative group focus:outline-none">
-                            <div className="absolute inset-0 bg-blue-600 rounded-full blur-xl opacity-40 group-hover:opacity-60 transition-opacity animate-pulse"></div>
-                            <div className="relative w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-2xl border-[3px] border-[#0f172a] transform group-hover:scale-105 transition-transform"><MicIcon className="w-7 h-7 text-white" /></div>
-                        </button>
-                        <button onClick={() => setView('inventory')} className="w-12 h-12 rounded-full bg-[#1e293b]/90 backdrop-blur text-slate-400 hover:text-white hover:bg-[#334155] border border-white/10 shadow-xl flex items-center justify-center transition-all"><CameraIcon /></button>
                     </div>
                 )}
-            </div>
+
+                {/* Error Message */}
+                {error && <div className="bg-red-50 text-red-600 text-xs p-3 rounded-xl border border-red-100 text-center">{error}</div>}
+            </main>
+
             <CapabilitiesModal isOpen={isCapabilitiesOpen} onClose={() => setIsCapabilitiesOpen(false)} setView={setView} />
         </div>
     );

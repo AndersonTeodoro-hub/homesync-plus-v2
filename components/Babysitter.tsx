@@ -20,7 +20,7 @@ export const Babysitter: React.FC<BabysitterProps> = ({ voiceState, startVoiceSe
     const analyserRef = useRef<AnalyserNode | null>(null);
     const microphoneRef = useRef<MediaStreamAudioSourceNode | null>(null);
     const requestRef = useRef<number | null>(null);
-    const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const silenceTimeoutRef = useRef<any>(null);
 
     // EMERGENCY CONTACT (Simulated)
     const emergencyContact = { name: "Pai/Mãe", number: "11999999999" };
@@ -91,7 +91,7 @@ export const Babysitter: React.FC<BabysitterProps> = ({ voiceState, startVoiceSe
 
     // EMERGENCY TRIGGER LOGIC
     useEffect(() => {
-        let interval: NodeJS.Timeout;
+        let interval: any;
         if (status === 'cry' && isMonitoring) {
             interval = setInterval(() => {
                 setEmergencyTimer(prev => prev + 1);

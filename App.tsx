@@ -198,6 +198,15 @@ const App: React.FC = () => {
           const command = JSON.parse(jsonString);
           console.log("Executando comando IA:", command);
 
+          // Add to message history for Dashboard
+          const newMessage: Message = {
+              id: Date.now().toString(),
+              role: 'model',
+              text: command.action === 'whatsapp' ? `Enviando WhatsApp para ${command.contact}...` : `Ligando para ${command.contact}...`,
+              timestamp: Date.now()
+          };
+          setMessages(prev => [...prev, newMessage]);
+
           if (command.action === 'whatsapp') {
               const contactNumber = findContactNumber(command.contact);
               
@@ -344,14 +353,26 @@ const App: React.FC = () => {
                   scriptProcessorRef.current.connect(inputAudioContextRef.current!.destination);
               },
               onmessage: async (msg) => {
-                  if (msg.serverContent?.outputTranscription?.text) { const text = msg.serverContent.outputTranscription.text; currentResponseTextRef.current += text; }
+                  if (msg.serverContent?.outputTranscription?.text) { 
+                      const text = msg.serverContent.outputTranscription.text; 
+                      currentResponseTextRef.current += text;
+                  }
                   if (msg.serverContent?.turnComplete) {
                       const fullText = currentResponseTextRef.current;
                       const jsonMatch = fullText.match(/```json([\s\S]*?)```/);
+                      
+                      // Add User/Model turn to history
+                      if (fullText) {
+                          setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: fullText, timestamp: Date.now() }]);
+                      }
+
                       if (jsonMatch && jsonMatch[1]) executeAICommand(jsonMatch[1]);
                       currentResponseTextRef.current = ''; setCurrentUserTurn(''); setCurrentModelTurn(''); if (sourcesRef.current.size === 0) setVoiceState('idle');
                   }
-                  if (msg.serverContent?.inputTranscription) { setVoiceState('listening'); setCurrentUserTurn(prev => prev + msg.serverContent.inputTranscription.text); }
+                  if (msg.serverContent?.inputTranscription) { 
+                      setVoiceState('listening'); 
+                      // Real-time input transcription can be handled here if needed to show "User is speaking..."
+                  }
                   const audioData = msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
                   if (audioData) await playAudioData(audioData);
               },
@@ -402,7 +423,7 @@ const App: React.FC = () => {
         case 'nutritionist': return <Nutritionist messages={messages} isLoading={isLoading} error={error} onSendMessage={() => {}} onFeedback={() => {}} onShareApp={() => {}} />;
         case 'personal-trainer': return <PersonalTrainer messages={messages} isLoading={isLoading} error={error} onSendMessage={() => {}} onFeedback={() => {}} onShareApp={() => {}} />;
         case 'family': return <Family />;
-        case 'home': default: return <Home appState={appState} voiceState={voiceState} error={error} setView={handleSetView} startVoiceSession={startVoiceSession} onShareApp={handleShareApp} onOpenLanguage={() => setIsLanguageModalOpen(true)} installPrompt={installPrompt} />;
+        case 'home': default: return <Home appState={appState} voiceState={voiceState} error={error} setView={handleSetView} startVoiceSession={startVoiceSession} onShareApp={handleShareApp} onOpenLanguage={() => setIsLanguageModalOpen(true)} installPrompt={installPrompt} messages={messages} userName={userName} />;
     }
   }
 
