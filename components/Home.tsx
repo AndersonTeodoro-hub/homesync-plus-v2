@@ -6,7 +6,8 @@ import {
     MicIcon, CameraIcon, SparklesIcon, FamilyIcon, EnglishIcon, BabyIcon, 
     NutritionistIcon, PersonalTrainerIcon, HeartIcon, BalloonIcon, GlobeIcon, 
     DownloadIcon, SunIcon, MoonIcon, ClockIcon, SettingsIcon, CalendarIcon, 
-    ListBulletIcon, PhoneIcon, CheckCircleIcon, SyncPrimeLogo, UserCircleIcon
+    ListBulletIcon, PhoneIcon, CheckCircleIcon, SyncPrimeLogo, UserCircleIcon,
+    LoadingSpinnerIcon
 } from './Icons';
 
 type AppState = 'sleeping' | 'active';
@@ -31,6 +32,9 @@ export const Home: React.FC<HomeProps> = ({
 }) => {
   const [isCapabilitiesOpen, setIsCapabilitiesOpen] = useState(false);
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'night'>('morning');
+
+  // URL do Avatar - Substitua por '/avatar.png' se colocar o arquivo na pasta public
+  const AVATAR_URL = "https://img.freepik.com/premium-photo/3d-avatar-profession-as-customer-service-agent_1029469-223630.jpg?w=740"; 
 
   useEffect(() => {
       const hour = new Date().getHours();
@@ -91,32 +95,78 @@ export const Home: React.FC<HomeProps> = ({
 
             <main className="relative z-10 flex-1 overflow-y-auto px-6 py-4 custom-scrollbar space-y-8">
                 
-                {/* --- HERO ORB (Voice Trigger) --- */}
-                <div className="flex flex-col items-center justify-center py-6">
+                {/* --- HERO AVATAR (Interactive) --- */}
+                <div className="flex flex-col items-center justify-center py-8">
                     <div className="relative group cursor-pointer" onClick={startVoiceSession}>
-                        {/* Pulse Rings */}
-                        <div className={`absolute inset-0 bg-blue-500 rounded-full opacity-10 blur-xl transition-all duration-1000 ${voiceState === 'listening' ? 'scale-150 animate-pulse' : 'scale-100'}`}></div>
-                        <div className={`absolute inset-0 bg-gradient-to-tr from-blue-400 to-cyan-300 rounded-full blur-md opacity-40 transition-all duration-1000 ${voiceState === 'speaking' ? 'scale-125' : 'scale-100'}`}></div>
-                        
-                        {/* Main Orb */}
-                        <div className={`relative w-40 h-40 rounded-full bg-gradient-to-br from-[#247CFF] to-cyan-500 flex items-center justify-center shadow-[0_20px_50px_rgba(36,124,255,0.3)] border-4 border-white/20 transition-all duration-300 transform group-hover:scale-105 active:scale-95 ${voiceState === 'listening' ? 'animate-bounce-slow' : ''}`}>
-                            {voiceState === 'idle' && <MicIcon className="w-12 h-12 text-white" />}
-                            {voiceState === 'listening' && <div className="flex gap-1 h-8 items-end"><span className="w-1.5 bg-white animate-[bounce_1s_infinite] h-4"></span><span className="w-1.5 bg-white animate-[bounce_1.2s_infinite] h-8"></span><span className="w-1.5 bg-white animate-[bounce_0.8s_infinite] h-6"></span></div>}
-                            {voiceState === 'thinking' && <SparklesIcon className="w-12 h-12 text-white animate-spin" />}
-                            {voiceState === 'speaking' && <div className="w-20 h-20 bg-white/20 rounded-full animate-ping"></div>}
+                        {/* 1. Glow Effects (Background Aura) */}
+                        <div className={`absolute inset-0 rounded-full blur-2xl transition-all duration-700 
+                            ${voiceState === 'listening' ? 'bg-green-400/50 scale-125 opacity-100' : 
+                              voiceState === 'speaking' ? 'bg-blue-500/50 scale-110 opacity-100' : 
+                              voiceState === 'thinking' ? 'bg-purple-500/50 scale-110 opacity-100' : 
+                              'bg-blue-500/10 scale-100 opacity-0 group-hover:opacity-60'}`}
+                        ></div>
+
+                        {/* 2. Avatar Container */}
+                        <div className={`relative w-48 h-48 rounded-full p-1 bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-transform duration-300 active:scale-95
+                            ${voiceState === 'listening' ? 'scale-105' : ''}
+                        `}>
+                            {/* Avatar Image */}
+                            <img 
+                                src={AVATAR_URL}
+                                alt="Sync Avatar" 
+                                className={`w-full h-full rounded-full object-cover border-[6px] transition-all duration-500
+                                    ${voiceState === 'listening' ? 'border-green-400' : 
+                                      voiceState === 'speaking' ? 'border-blue-500' : 
+                                      voiceState === 'thinking' ? 'border-purple-400' : 
+                                      'border-white grayscale-[0.1]'}
+                                `}
+                            />
+                            
+                            {/* 3. Status Badge (Floating Icon) */}
+                            <div className={`absolute bottom-2 right-2 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg border-2 z-10 transition-colors duration-300
+                                ${voiceState === 'listening' ? 'border-green-100' : 
+                                  voiceState === 'speaking' ? 'border-blue-100' : 
+                                  'border-gray-100'}
+                            `}>
+                                 {voiceState === 'idle' && <MicIcon className="w-6 h-6 text-blue-600" />}
+                                 
+                                 {voiceState === 'listening' && (
+                                    <div className="relative flex items-center justify-center">
+                                        <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping"></span>
+                                        <div className="w-3 h-3 bg-green-500 rounded-full relative z-10"></div>
+                                    </div>
+                                 )}
+                                 
+                                 {voiceState === 'thinking' && <LoadingSpinnerIcon className="w-6 h-6 text-purple-600" />}
+                                 
+                                 {voiceState === 'speaking' && (
+                                    <div className="flex gap-0.5 h-3 items-end">
+                                        <span className="w-1 bg-blue-500 h-full animate-[bounce_1s_infinite]"></span>
+                                        <span className="w-1 bg-blue-500 h-2/3 animate-[bounce_1.2s_infinite]"></span>
+                                        <span className="w-1 bg-blue-500 h-full animate-[bounce_0.8s_infinite]"></span>
+                                    </div>
+                                 )}
+                            </div>
                         </div>
 
-                        {/* Status Label */}
+                        {/* 4. Status Label */}
                         <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                            <span className={`text-sm font-bold tracking-wide transition-colors ${voiceState === 'idle' ? 'text-gray-400' : 'text-blue-600'}`}>
-                                {voiceState === 'idle' ? "Toque para falar" : voiceState === 'listening' ? "Ouvindo..." : voiceState === 'thinking' ? "Processando..." : "Falando..."}
+                            <span className={`text-sm font-bold tracking-wide uppercase transition-colors 
+                                ${voiceState === 'listening' ? 'text-green-600' : 
+                                  voiceState === 'speaking' ? 'text-blue-600' : 
+                                  voiceState === 'thinking' ? 'text-purple-600' : 
+                                  'text-gray-400'}`}>
+                                {voiceState === 'idle' ? "Toque para falar" : 
+                                 voiceState === 'listening' ? "Ouvindo..." : 
+                                 voiceState === 'thinking' ? "Processando..." : 
+                                 "Falando..."}
                             </span>
                         </div>
                     </div>
                 </div>
 
                 {/* --- SMART SUGGESTION --- */}
-                <div className="bg-white/60 backdrop-blur-md border border-white/50 p-4 rounded-2xl shadow-sm flex items-center justify-between mt-8">
+                <div className="bg-white/60 backdrop-blur-md border border-white/50 p-4 rounded-2xl shadow-sm flex items-center justify-between mt-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
                             {React.cloneElement(suggestion.icon as React.ReactElement<{ className?: string }>, { className: "w-5 h-5" })}
