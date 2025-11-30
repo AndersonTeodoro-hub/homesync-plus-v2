@@ -1,0 +1,2 @@
+import React from 'react';
+export const Dashboard = ({ setView }: any) => <div className="p-4 text-white"><h2>Dashboard</h2><p>Overview of your smart home.</p><button onClick={() => setView('home')} className="text-blue-400">Back</button></div>;

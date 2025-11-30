@@ -1,0 +1,2 @@
+import React from 'react';
+export const ShareModal = ({ isOpen, onClose }: any) => isOpen ? <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"><div className="bg-slate-800 p-6 rounded-xl"><h2 className="text-white mb-4">Share</h2><button onClick={onClose} className="text-white bg-blue-600 px-4 py-2 rounded">Close</button></div></div> : null;

@@ -1,0 +1,9 @@
+{
+  "name": "Async Plus",
+  "description": "Intelligent Home Operating System with voice, navigation, and personality modules.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

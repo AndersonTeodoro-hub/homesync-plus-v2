@@ -1,0 +1,2 @@
+import React from 'react';
+export const PremiumModal = ({ isOpen, onClose }: any) => isOpen ? <div className="fixed inset-0 bg-black/50 flex items-center justify-center"><div className="bg-slate-800 p-6 rounded"><h2 className="text-white">Premium Feature</h2><button onClick={onClose} className="mt-4 text-white">Close</button></div></div> : null;
