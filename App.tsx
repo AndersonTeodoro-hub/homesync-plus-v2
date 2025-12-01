@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat, Modality, Blob } from '@google/genai';
 import { SYSTEM_INSTRUCTION, LIVE_MODEL_NAME, KIDS_COMPANION_INSTRUCTION, ENGLISH_TUTOR_INSTRUCTION, CHEF_INSTRUCTION, CFO_INSTRUCTION, ORGANIZER_INSTRUCTION, SHOPPING_INSTRUCTION, BABYSITTER_INSTRUCTION } from './constants';
@@ -135,9 +134,13 @@ const App: React.FC = () => {
     if (storedOnboarding === 'true') { setHasOnboarded(true); }
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-      const chatSession = ai.chats.create({ model: 'gemini-2.5-flash', config: { systemInstruction: SYSTEM_INSTRUCTION } });
-      setChat(chatSession);
+      // FIX: Use process.env.API_KEY
+      const apiKey = process.env.API_KEY;
+      if (apiKey) {
+        const ai = new GoogleGenAI({ apiKey });
+        const chatSession = ai.chats.create({ model: 'gemini-2.5-flash', config: { systemInstruction: SYSTEM_INSTRUCTION } });
+        setChat(chatSession);
+      }
     } catch (e) { setError(e instanceof Error ? `Initialization Error: ${e.message}` : "An unknown initialization error occurred."); }
     return () => { stopVoiceSession(false); };
   }, []);
@@ -294,7 +297,12 @@ const App: React.FC = () => {
       mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
       inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      
+      // FIX: Use process.env.API_KEY
+      const apiKey = process.env.API_KEY;
+      if (!apiKey) throw new Error("API Key not found");
+      
+      const ai = new GoogleGenAI({ apiKey });
       
       const currentUser = localStorage.getItem('async_user') || 'Usuário';
       

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { BalloonIcon, BookIcon, PlayCircleIcon, StarIcon, LoadingSpinnerIcon, LockIcon } from './Icons';
@@ -34,7 +33,8 @@ export const SyncKids: React.FC<SyncKidsProps> = ({ voiceState, startVoiceSessio
     const generateCartoonScene = async (promptDescription: string) => {
         setIsLoadingScene(true);
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+            // FIX: Use process.env.API_KEY
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const prompt = `Cute colorful 3d pixar style illustration of ${promptDescription}, vibrant colors, happy atmosphere.`;
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash-image',

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { InventoryIcon, CameraIcon, LoadingSpinnerIcon, SparklesIcon } from './Icons';
@@ -34,7 +33,8 @@ export const Inventory: React.FC<InventoryProps> = ({ voiceState, startVoiceSess
         setAnalysis(null);
         setGeneratedRecipeImage(null);
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+            // FIX: Use process.env.API_KEY
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             
             // 1. Vision Analysis: Chef Mode
             const prompt = `Você é a Chef Sync, especialista em gastronomia. Analise esta imagem da geladeira/despensa. Identifique os ingredientes principais. Sugira 1 receita sofisticada mas possível de fazer com esses itens. Seja breve e entusiasta. Retorne o nome do prato em negrito.`;

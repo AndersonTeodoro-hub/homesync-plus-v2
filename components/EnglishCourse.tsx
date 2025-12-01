@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { EnglishIcon, StarIcon, FireIcon, TrophyIcon, HeartIcon, LockIcon, PlayCircleIcon, LoadingSpinnerIcon } from './Icons';
@@ -36,7 +35,8 @@ export const EnglishCourse: React.FC<EnglishCourseProps> = ({ voiceState, startV
     const generateSceneImage = async (promptDescription: string) => {
         setIsLoadingScene(true);
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+            // FIX: Use process.env.API_KEY
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const prompt = `Cinematic concept art of ${promptDescription}, immersive atmosphere, 4k, trending on artstation, no text.`;
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash-image',

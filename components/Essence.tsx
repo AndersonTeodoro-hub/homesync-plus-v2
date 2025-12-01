@@ -12,7 +12,8 @@ export const Essence: React.FC = () => {
     setIsGenerating(true);
     setMessage(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      // FIX: Use process.env.API_KEY
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const prompt = `Eu estou me sentindo: ${mood}. Aja como um amigo sábio e estoico. Me dê um conselho curto e motivador.`;
       const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: [{ parts: [{ text: prompt }] }] });
       setMessage(response.text || "Erro ao gerar.");
