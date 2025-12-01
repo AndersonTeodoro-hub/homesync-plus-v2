@@ -1,15 +1,20 @@
+// ---------- PARTE 1 ----------
+// Importações principais
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Chat, Modality, Blob } from '@google/genai';
+import { GoogleGenerativeAI, Chat, Modality } from '@google/generative-ai';
+
+// Importações internas
 import { 
-  SYSTEM_INSTRUCTION, LIVE_MODEL_NAME,
-  KIDS_COMPANION_INSTRUCTION, ENGLISH_TUTOR_INSTRUCTION,
-  CHEF_INSTRUCTION, CFO_INSTRUCTION, ORGANIZER_INSTRUCTION,
-  SHOPPING_INSTRUCTION, BABYSITTER_INSTRUCTION
+  SYSTEM_INSTRUCTION, LIVE_MODEL_NAME, KIDS_COMPANION_INSTRUCTION,
+  ENGLISH_TUTOR_INSTRUCTION, CHEF_INSTRUCTION, CFO_INSTRUCTION,
+  ORGANIZER_INSTRUCTION, SHOPPING_INSTRUCTION, BABYSITTER_INSTRUCTION
 } from './constants';
 
 import type { View, Message, Session, Contact, Language } from './types';
+
 import { decode, encode, decodeAudioData } from './utils';
 
+// Componentes
 import { Sidebar } from './components/Sidebar';
 import { Home } from './components/Home';
 import { Dashboard } from './components/Dashboard';
@@ -36,765 +41,259 @@ import { LandingPage } from './components/LandingPage';
 import { Onboarding } from './components/Onboarding';
 
 declare global {
-  interface AIStudio {
-    getShareableUrl: () => Promise<string>;
-  }
   interface Window {
-    aistudio?: AIStudio;
     deferredPrompt?: any;
   }
 }
 
 const App: React.FC = () => {
-
-  // === CORE STATES ===
   const [showLanding, setShowLanding] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasOnboarded, setHasOnboarded] = useState(false);
-  const [userName, setUserName] = useState('');
 
+  const [userName, setUserName] = useState('');
   const [activeView, setActiveView] = useState<View>('home');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [chat, setChat] = useState<Chat | null>(null);
-
+  // Estados do assistente
   const [appState, setAppState] = useState<'sleeping' | 'active'>('sleeping');
   const [voiceState, setVoiceState] = useState<'idle' | 'listening' | 'speaking' | 'thinking'>('idle');
 
-  const [currentUserTurn, setCurrentUserTurn] = useState('');
-  const [currentModelTurn, setCurrentModelTurn] = useState('');
+  const [activeCall, setActiveCall] = useState<any>(null);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
 
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-  const [shareUrl, setShareUrl] = useState('');
-
-  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
-  const [premiumFeatureName, setPremiumFeatureName] = useState('');
-
-  const [activeCall, setActiveCall] = useState<{ 
-    contact: string, status: string, sid?: string, color?: string 
-  } | null>(null);
-
-  // === LANGUAGE ===
   const [nativeLanguage, setNativeLanguage] = useState<Language>('pt-BR');
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
 
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
-
-  // === AUDIO + AI ===
+  // Referências de áudio/sessão
   const sessionRef = useRef<Promise<Session> | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const inputAudioContextRef = useRef<AudioContext | null>(null);
-  const outputAudioContextRef = useRef<AudioContext | null>(null);
-  const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
-  const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  const nextStartTimeRef = useRef<number>(0);
-  const currentResponseTextRef = useRef<string>('');
+  const mediaRef = useRef<MediaStream | null>(null);
+  const inputCtx = useRef<AudioContext | null>(null);
+  const outputCtx = useRef<AudioContext | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const audioSources = useRef<Set<AudioBufferSourceNode>>(new Set());
+  const nextStart = useRef<number>(0);
+  const partialText = useRef<string>('');
 
-  // === INSTALL PWA ===
-  useEffect(() => {
-    const handler = (e: any) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-      window.deferredPrompt = e;
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-  const handleInstallClick = () => {
-    if (installPrompt) {
-      installPrompt.prompt();
-      installPrompt.userChoice.then((choiceResult: any) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the install prompt');
-          setInstallPrompt(null);
-        } else {
-          console.log('User dismissed the install prompt');
-        }
-      });
-    }
+// ---------- PARTE 2 ----------
+
+// Instalar PWA
+useEffect(() => {
+  const handlePrompt = (e: any) => {
+    e.preventDefault();
+    setInstallPrompt(e);
+    window.deferredPrompt = e;
   };
+  window.addEventListener("beforeinstallprompt", handlePrompt);
+  return () => window.removeEventListener("beforeinstallprompt", handlePrompt);
+}, []);
 
-  useEffect(() => {
-    let interval: any;
+const handleInstallClick = () => {
+  if (installPrompt) {
+    installPrompt.prompt();
+    installPrompt.userChoice.then(() => setInstallPrompt(null));
+  }
+};
 
-    if (activeCall && activeCall.sid) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/twilio-status?sid=${activeCall.sid}`);
-          const data = await res.json();
+// Login + Onboarding
+useEffect(() => {
+  const storedUser = localStorage.getItem('async_user');
+  const storedLang = localStorage.getItem('async_lang') as Language;
+  const storedOnboard = localStorage.getItem('sync_onboarding_complete');
 
-          if (data.status === 'in-progress') {
-            setActiveCall(prev => prev ? { ...prev, status: 'Conectado! Em conversa.', color: 'bg-green-600' } : null);
-          } 
-          else if (data.status === 'completed') {
-            setActiveCall(prev => prev ? { ...prev, status: 'Chamada Finalizada.', color: 'bg-gray-800' } : null);
-            clearInterval(interval);
-            setTimeout(() => setActiveCall(null), 3000);
-          } 
-          else if (['busy', 'failed', 'no-answer'].includes(data.status)) {
-            setActiveCall(prev => prev ? { ...prev, status: `Não atendeu (${data.status})`, color: 'bg-red-600' } : null);
-            clearInterval(interval);
-            setTimeout(() => setActiveCall(null), 4000);
-          }
-
-        } catch (e) {
-          console.error("Erro no polling:", e);
-        }
-      }, 2000);
-    }
-
-    return () => clearInterval(interval);
-  }, [activeCall?.sid]);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('async_user');
-    const storedLang = localStorage.getItem('async_lang') as Language;
-    const storedOnboarding = localStorage.getItem('sync_onboarding_complete');
-
-    if (storedUser) {
-      setUserName(storedUser);
-      setIsAuthenticated(true);
-      setShowLanding(false);
-    }
-
-    if (storedLang) {
-      setNativeLanguage(storedLang);
-    }
-
-    if (storedOnboarding === 'true') {
-      setHasOnboarded(true);
-    }
-
-    try {
-      const apiKey = import.meta.env.VITE_API_KEY;
-      if (apiKey) {
-        const ai = new GoogleGenAI({ apiKey });
-        const chatSession = ai.chats.create({
-          model: "gemini-2.5-flash",
-          config: { systemInstruction: SYSTEM_INSTRUCTION }
-        });
-
-        setChat(chatSession);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? `Initialization Error: ${e.message}` : "Unknown initialization error.");
-    }
-
-    return () => stopVoiceSession(false);
-  }, []);
-
-  const handleLogin = (name: string) => {
-    localStorage.setItem('async_user', name);
-    setUserName(name);
+  if (storedUser) {
+    setUserName(storedUser);
     setIsAuthenticated(true);
+    setShowLanding(false);
+  }
+  if (storedLang) setNativeLanguage(storedLang);
+  if (storedOnboard === 'true') setHasOnboarded(true);
+}, []);
+
+const handleLogin = (name: string) => {
+  localStorage.setItem('async_user', name);
+  setUserName(name);
+  setIsAuthenticated(true);
+};
+
+const handleOnboardingComplete = () => {
+  localStorage.setItem('sync_onboarding_complete', 'true');
+  setHasOnboarded(true);
+};
+
+// Alterar idioma
+const handleLanguageChange = (lang: Language) => {
+  localStorage.setItem('async_lang', lang);
+  setNativeLanguage(lang);
+};
+
+// ---------- PARTE 3 ----------
+
+// Tocar áudio gerado pela IA
+const playAudio = async (base64: string) => {
+  if (!outputCtx.current) {
+    outputCtx.current = new AudioContext({ sampleRate: 24000 });
+  }
+
+  const ctx = outputCtx.current;
+  if (ctx.state === 'suspended') await ctx.resume();
+
+  setVoiceState('speaking');
+
+  const data = decode(base64);
+  const buffer = await decodeAudioData(data, ctx, 24000, 1);
+
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(ctx.destination);
+
+  source.onended = () => {
+    audioSources.current.delete(source);
+    if (audioSources.current.size === 0) setVoiceState('idle');
   };
 
-  const handleOnboardingComplete = () => {
-    localStorage.setItem('sync_onboarding_complete', 'true');
-    setHasOnboarded(true);
-  };
+  source.start(nextStart.current);
+  nextStart.current += buffer.duration;
+  audioSources.current.add(source);
+};
 
-  const handleLogout = () => {
-    localStorage.removeItem('async_user');
-    setIsAuthenticated(false);
-    setUserName('');
-    setShowLanding(true);
-    setActiveView('home');
-  };
+// Encerrar sessão de voz
+const stopVoiceSession = async () => {
+  setAppState('sleeping');
+  setVoiceState('idle');
 
-  const handleLanguageChange = (lang: Language) => {
-    setNativeLanguage(lang);
-    localStorage.setItem('async_lang', lang);
-
-    if (appState === 'active') {
-      stopVoiceSession(false);
-      setTimeout(() => startVoiceSession(), 500);
-    }
-  };
-
-  const findContactNumber = (name: string): string | null => {
+  if (sessionRef.current) {
     try {
-      const saved = localStorage.getItem('familyContacts');
+      const s = await sessionRef.current;
+      await s.close();
+    } catch {}
+    sessionRef.current = null;
+  }
 
-      const defaultContacts: Contact[] = [
-        { id: 1, name: 'Cris', relationship: 'Esposa', phone: '5511999999999', whatsapp: '5511999999999', email: '' },
-        { id: 2, name: 'Filho', relationship: 'Filho', phone: '5511988888888', whatsapp: '5511988888888', email: '' }
-      ];
+  mediaRef.current?.getTracks().forEach(t => t.stop());
+  mediaRef.current = null;
 
-      const contacts: Contact[] = saved ? JSON.parse(saved) : defaultContacts;
+  processorRef.current?.disconnect();
+  processorRef.current = null;
 
-      const contact = contacts.find(c =>
-        c.name.toLowerCase().includes(name.toLowerCase())
-      );
+  audioSources.current.forEach(s => s.stop());
+  audioSources.current.clear();
+  nextStart.current = 0;
+  partialText.current = '';
+};
 
-      if (!contact) return null;
+// Iniciar GEMINI LIVE
+const startVoiceSession = async () => {
+  try {
+    setAppState('active');
+    setError(null);
 
-      let clean = contact.phone.replace(/[^0-9+]/g, '');
-      if (!clean.startsWith('+')) clean = '+55' + clean;
+    mediaRef.current = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+    });
 
-      return clean;
+    inputCtx.current = new AudioContext({ sampleRate: 16000 });
+    outputCtx.current = new AudioContext({ sampleRate: 24000 });
 
-    } catch {
-      return null;
-    }
-  };
+    const apiKey = import.meta.env.VITE_API_KEY;
+    if (!apiKey) throw new Error("VITE_API_KEY não encontrada.");
 
-  const executeAICommand = async (jsonString: string) => {
-    try {
-      const command = JSON.parse(jsonString);
+    const ai = new GoogleGenerativeAI({ apiKey });
 
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        role: 'model',
-        text:
-          command.action === 'whatsapp'
-            ? `Enviando WhatsApp para ${command.contact}...`
-            : `Ligando para ${command.contact}...`,
-        timestamp: Date.now()
-      };
+    const sys = SYSTEM_INSTRUCTION;
+    const session = ai.live.connect({
+      model: LIVE_MODEL_NAME,
+      config: { responseModalities: [Modality.AUDIO], systemInstruction: sys },
+      callbacks: {
+        onopen: () => {
+          const src = inputCtx.current!.createMediaStreamSource(mediaRef.current!);
+          processorRef.current = inputCtx.current!.createScriptProcessor(4096, 1, 1);
 
-      setMessages(prev => [...prev, newMessage]);
-
-      if (command.action === 'whatsapp') {
-        const contactNumber = findContactNumber(command.contact);
-
-        if (contactNumber) {
-          const wa = contactNumber.replace('+', '');
-          const url = `https://wa.me/${wa}?text=${encodeURIComponent(command.message)}`;
-
-          setTimeout(() => window.open(url, '_blank'), 2000);
-        } else {
-          console.warn(`Contato não encontrado: ${command.contact}`);
-          setTimeout(() => setActiveView('family'), 2000);
-        }
-
-      } else if (command.action === 'call') {
-        const contactNumber = findContactNumber(command.contact);
-        const contactName = command.contact;
-
-        if (!contactNumber) {
-          alert(`Não encontrei o número de ${command.contact}.`);
-          return setActiveView('family');
-        }
-
-        setActiveCall({
-          contact: contactName,
-          status: 'Iniciando discagem...',
-          color: 'bg-black'
-        });
-
-        try {
-          const res = await fetch('/api/twilio-webhook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: contactNumber,
-              message: `Olá ${contactName}. Aqui é a Sync Prime. ${command.context || ''}`
-            })
-          });
-
-          const data = await res.json();
-
-          if (data.mode === 'real') {
-            setActiveCall({
-              contact: contactName,
-              status: 'Chamando via Rede Telefônica...',
-              sid: data.sid,
-              color: 'bg-yellow-900'
+          processorRef.current.onaudioprocess = e => {
+            const input = e.inputBuffer.getChannelData(0);
+            const pcm = new Int16Array(input.map(v => v * 32767));
+            session.sendRealtimeInput({
+              media: { data: encode(new Uint8Array(pcm.buffer)), mimeType: "audio/pcm" }
             });
-          } else {
-            setActiveCall({
-              contact: contactName,
-              status: 'Simulando chamada...',
-              color: 'bg-blue-900'
-            });
+          };
 
-            setTimeout(() => setActiveCall(null), 6000);
+          src.connect(processorRef.current);
+          processorRef.current.connect(inputCtx.current!.destination);
+        },
+
+        onmessage: async msg => {
+          if (msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data) {
+            await playAudio(msg.serverContent.modelTurn.parts[0].inlineData.data);
           }
+        },
 
-        } catch {
-          setActiveCall({
-            contact: contactName,
-            status: 'Erro na conexão.',
-            color: 'bg-red-900'
-          });
+        onerror: err => {
+          setError(err.message);
+          stopVoiceSession();
+        },
 
-          setTimeout(() => setActiveCall(null), 4000);
-        }
-      }
-
-    } catch (e) {
-      console.error("Erro ao processar comando JSON da IA:", e);
-    }
-  };
-  const playAudioData = async (audioData: string) => {
-    if (!outputAudioContextRef.current) {
-      outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: 24000
-      });
-    }
-
-    const ctx = outputAudioContextRef.current;
-
-    if (ctx.state === 'suspended') {
-      await ctx.resume();
-    }
-
-    setVoiceState('speaking');
-
-    nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
-
-    const audioBuffer = await decodeAudioData(
-      decode(audioData),
-      ctx,
-      24000,
-      1
-    );
-
-    const source = ctx.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(ctx.destination);
-
-    source.addEventListener("ended", () => {
-      sourcesRef.current.delete(source);
-
-      if (sourcesRef.current.size === 0 && !sessionRef.current) {
-        setVoiceState("idle");
+        onclose: () => stopVoiceSession()
       }
     });
 
-    source.start(nextStartTimeRef.current);
-    nextStartTimeRef.current += audioBuffer.duration;
-
-    sourcesRef.current.add(source);
-  };
-
-  const stopVoiceSession = async (changeState: boolean = true) => {
-    if (changeState) {
-      setAppState("sleeping");
-      setVoiceState("idle");
-    }
-
-    if (sessionRef.current) {
-      try {
-        const session = await sessionRef.current;
-        session.close();
-      } catch (e) {
-        console.warn("Erro ao fechar sessão de voz:", e);
-      } finally {
-        sessionRef.current = null;
-      }
-    }
-
-    mediaStreamRef.current?.getTracks().forEach(track => track.stop());
-    mediaStreamRef.current = null;
-
-    scriptProcessorRef.current?.disconnect();
-    scriptProcessorRef.current = null;
-
-    sourcesRef.current.forEach(s => s.stop());
-    sourcesRef.current.clear();
-
-    nextStartTimeRef.current = 0;
-    currentResponseTextRef.current = "";
-  };
-
-  const startVoiceSession = async () => {
-    if (appState === "active") {
-      stopVoiceSession();
-      return;
-    }
-
-    setAppState("active");
-    setError(null);
-    currentResponseTextRef.current = "";
-
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error("Microfone não suportado neste aparelho.");
-      }
-
-      mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
-
-      inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: 16000
-      });
-
-      outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: 24000
-      });
-
-      const apiKey = import.meta.env.VITE_API_KEY;
-      if (!apiKey) throw new Error("VITE_API_KEY não encontrada na Vercel.");
-
-      const ai = new GoogleGenAI({ apiKey });
-
-      const currentUser = localStorage.getItem("async_user") || "Usuário";
-
-      let baseInstruction = SYSTEM_INSTRUCTION;
-      let startupMessage = `Say 'Olá ${currentUser}! O que vamos fazer agora?'`;
-
-      switch (activeView) {
-        case "sync-kids":
-          baseInstruction = KIDS_COMPANION_INSTRUCTION;
-          startupMessage = `Diga 'Oi amiguinho ${currentUser}! Eu sou a Sync Kids. Vamos brincar?'`;
-          break;
-
-        case "english-course":
-          baseInstruction = ENGLISH_TUTOR_INSTRUCTION;
-          startupMessage = `Say 'Hello ${currentUser}! Let's practice English.'`;
-          break;
-
-        case "inventory":
-          baseInstruction = CHEF_INSTRUCTION;
-          startupMessage = `Diga 'Olá ${currentUser}! Chef Sync aqui. Vamos ver a despensa?'`;
-          break;
-
-        case "finances":
-          baseInstruction = CFO_INSTRUCTION;
-          startupMessage = `Diga 'Olá. Modo CFO ativado. Vou analisar seus números.'`;
-          break;
-
-        case "tasks":
-          baseInstruction = ORGANIZER_INSTRUCTION;
-          startupMessage = `Diga 'Ok ${currentUser}, vamos organizar seu dia!'`;
-          break;
-
-        case "shopping":
-          baseInstruction = SHOPPING_INSTRUCTION;
-          startupMessage = `Diga 'Sync Shopper aqui! Vamos revisar sua lista.'`;
-          break;
-
-        case "babysitter":
-          baseInstruction = BABYSITTER_INSTRUCTION;
-          startupMessage = `Diga 'Oi! Eu sou a Sync Nanny. O ambiente está seguro.'`;
-          break;
-      }
-
-      const fullInstruction = `
-        ${baseInstruction}
-        [CRITICAL] Native language: ${nativeLanguage}.
-        If the user struggles, explain in ${nativeLanguage}.
-        Maintain roleplay tone always.
-        [STARTUP_MESSAGE]: ${startupMessage}
-      `;
-
-      sessionRef.current = ai.live.connect({
-        model: LIVE_MODEL_NAME,
-        config: {
-          responseModalities: [Modality.AUDIO],
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
-          systemInstruction: fullInstruction
-        },
-
-        callbacks: {
-          onopen: () => {
-            setVoiceState("listening");
-
-            const source = inputAudioContextRef.current!.createMediaStreamSource(mediaStreamRef.current!);
-            scriptProcessorRef.current = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
-
-            scriptProcessorRef.current.onaudioprocess = (event) => {
-              const inputData = event.inputBuffer.getChannelData(0);
-              const pcm16 = new Int16Array(inputData.length);
-
-              for (let i = 0; i < inputData.length; i++) {
-                pcm16[i] = Math.max(-1, Math.min(1, inputData[i])) * 32767;
-              }
-
-              const pcmBlob = {
-                data: encode(new Uint8Array(pcm16.buffer)),
-                mimeType: "audio/pcm;rate=16000"
-              };
-
-              sessionRef.current?.then(session =>
-                session.sendRealtimeInput({ media: pcmBlob })
-              );
-            };
-
-            source.connect(scriptProcessorRef.current);
-            scriptProcessorRef.current.connect(inputAudioContextRef.current!.destination);
-          },
-
-          onmessage: async (msg) => {
-            if (msg.serverContent?.outputTranscription?.text) {
-              currentResponseTextRef.current += msg.serverContent.outputTranscription.text;
-            }
-
-            if (msg.serverContent?.turnComplete) {
-              const fullText = currentResponseTextRef.current;
-
-              const jsonMatch = fullText.match(/```json([\s\S]*?)```/);
-
-              if (fullText) {
-                setMessages(prev => [
-                  ...prev,
-                  {
-                    id: Date.now().toString(),
-                    role: "model",
-                    text: fullText,
-                    timestamp: Date.now()
-                  }
-                ]);
-              }
-
-              if (jsonMatch && jsonMatch[1]) {
-                executeAICommand(jsonMatch[1]);
-              }
-
-              currentResponseTextRef.current = "";
-              setVoiceState("idle");
-            }
-
-            const audioData = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-
-            if (audioData) {
-              await playAudioData(audioData);
-            }
-          },
-
-          onerror: (e) => {
-            setError(`Voice error: ${e.message}`);
-            stopVoiceSession();
-          },
-
-          onclose: () => stopVoiceSession()
-        }
-      });
-
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro desconhecido ao iniciar voz.");
-      stopVoiceSession();
-    }
-  };
-  const handleShareApp = async () => {
-    try {
-      const url = window.location.href;
-      setShareUrl(url);
-
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(url)}&color=000000&bgcolor=ffffff`;
-      
-      setQrCodeUrl(qrApiUrl);
-      setIsShareModalOpen(true);
-
-    } catch (err) {
-      setError("Erro ao compartilhar.");
-    }
-  };
-
-  const handleSetView = (view: View) => {
-    setActiveView(view);
-    setIsSidebarOpen(false);
-  };
-
-  const toggleVoiceSession = () => {
-    if (appState === "active") {
-      stopVoiceSession();
-    } else {
-      startVoiceSession();
-    }
-  };
-
-  const renderActiveView = () => {
-    switch (activeView) {
-      case "sync-kids":
-        return <SyncKids voiceState={voiceState} startVoiceSession={toggleVoiceSession} />;
-
-      case "english-course":
-        return <EnglishCourse voiceState={voiceState} startVoiceSession={toggleVoiceSession} />;
-
-      case "dashboard":
-        return <Dashboard setView={handleSetView} />;
-
-      case "finances":
-        return <Finances voiceState={voiceState} startVoiceSession={toggleVoiceSession} />;
-
-      case "tasks":
-        return <Tasks voiceState={voiceState} startVoiceSession={toggleVoiceSession} />;
-
-      case "inventory":
-        return <Inventory voiceState={voiceState} startVoiceSession={toggleVoiceSession} />;
-
-      case "shopping":
-        return <Shopping voiceState={voiceState} startVoiceSession={toggleVoiceSession} />;
-
-      case "learning":
-        return <Learning />;
-
-      case "essence":
-        return <Essence />;
-
-      case "babysitter":
-        return <Babysitter voiceState={voiceState} startVoiceSession={toggleVoiceSession} />;
-
-      case "text-chat":
-        return (
-          <TextChat
-            messages={messages}
-            isLoading={isLoading}
-            error={error}
-            onSendMessage={() => {}}
-            onFeedback={() => {}}
-            onShareApp={() => {}}
-          />
-        );
-
-      case "nutritionist":
-        return (
-          <Nutritionist
-            messages={messages}
-            isLoading={isLoading}
-            error={error}
-            onSendMessage={() => {}}
-            onFeedback={() => {}}
-            onShareApp={() => {}}
-          />
-        );
-
-      case "personal-trainer":
-        return (
-          <PersonalTrainer
-            messages={messages}
-            isLoading={isLoading}
-            error={error}
-            onSendMessage={() => {}}
-            onFeedback={() => {}}
-            onShareApp={() => {}}
-          />
-        );
-
-      case "family":
-        return <Family />;
-
-      case "home":
-      default:
-        return (
-          <Home
-            appState={appState}
-            voiceState={voiceState}
-            error={error}
-            setView={handleSetView}
-            startVoiceSession={startVoiceSession}
-            onShareApp={handleShareApp}
-            onOpenLanguage={() => setIsLanguageModalOpen(true)}
-            installPrompt={installPrompt}
-            messages={messages}
-            userName={userName}
-          />
-        );
-    }
-  };
-
-  // --- LANDING PAGE ---
-  if (showLanding && !isAuthenticated) {
-    return (
-      <LandingPage
-        onEnter={() => setShowLanding(false)}
-        installPrompt={installPrompt}
-        onInstall={handleInstallClick}
-      />
-    );
+    sessionRef.current = Promise.resolve(session);
+
+  } catch (err: any) {
+    setError(err.message);
+    stopVoiceSession();
   }
+};
+// ---------- PARTE 4 ----------
 
-  // --- LOGIN ---
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
-  }
+const handleSetView = (v: View) => {
+  setActiveView(v);
+  setIsSidebarOpen(false);
+};
 
-  // --- ONBOARDING ---
-  if (!hasOnboarded) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
-  }
+if (showLanding && !isAuthenticated) {
+  return <LandingPage onEnter={() => setShowLanding(false)} installPrompt={installPrompt} onInstall={handleInstallClick} />;
+}
 
-  // --- MAIN APP ---
-  return (
-    <div className="flex h-screen font-sans overflow-hidden relative">
+if (!isAuthenticated) return <Login onLogin={handleLogin} />;
+if (!hasOnboarded) return <Onboarding onComplete={handleOnboardingComplete} />;
 
-      {activeCall && (
-        <div className={`fixed inset-0 z-[60] flex flex-col items-center justify-center text-white bg-black`}>
-          <h2 className="text-4xl font-bold mb-4">{activeCall.contact}</h2>
-          <p className="text-xl font-medium tracking-wide animate-pulse">
-            {activeCall.status}
-          </p>
-          <button
-            className="mt-8 p-5 rounded-full bg-red-600"
-            onClick={() => setActiveCall(null)}
-          >
-            <PhoneIcon />
-          </button>
-        </div>
-      )}
-
-      <div
-        className={`fixed inset-y-0 left-0 w-64 z-30 transform transition-transform duration-300 md:relative md:translate-x-0 
-          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <Sidebar
-          activeView={activeView}
-          setView={handleSetView}
-          onShareApp={handleShareApp}
-        />
+return (
+  <div className="flex h-screen overflow-hidden">
+    {activeCall && (
+      <div className="fixed inset-0 flex items-center justify-center text-white bg-black z-50">
+        <h2>{activeCall.contact}</h2>
+        <p>{activeCall.status}</p>
+        <button onClick={() => setActiveCall(null)}><PhoneIcon /></button>
       </div>
+    )}
 
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-20 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        ></div>
-      )}
-
-      <main className="flex-1 flex flex-col h-full relative font-sans">
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="absolute top-5 left-5 z-20 p-2 rounded-full bg-white/10 md:hidden"
-        >
-          <MenuIcon />
-        </button>
-
-        {renderActiveView()}
-
-        {appState === "active" && activeView === "home" && (
-          <GlobalVoiceControl
-            voiceState={voiceState}
-            stopVoiceSession={() => stopVoiceSession(true)}
-          />
-        )}
-      </main>
-
-      <ShareModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        qrDataUrl={qrCodeUrl}
-        shareUrl={shareUrl}
-        title="Compartilhar Sync Prime"
-      />
-
-      <PremiumModal
-        isOpen={isPremiumModalOpen}
-        onClose={() => setIsPremiumModalOpen(false)}
-        featureName={premiumFeatureName}
-      />
-
-      <LanguageModal
-        isOpen={isLanguageModalOpen}
-        onClose={() => setIsLanguageModalOpen(false)}
-        onSelect={handleLanguageChange}
-        currentLang={nativeLanguage}
-      />
+    <div className={`fixed inset-y-0 left-0 w-64 z-20 transition-transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0`}>
+      <Sidebar activeView={activeView} setView={handleSetView} />
     </div>
-  );
+
+    <main className="flex-1 relative">
+      {activeView === 'home' && <Home startVoiceSession={startVoiceSession} appState={appState} />}
+      {activeView === 'sync-kids' && <SyncKids startVoiceSession={startVoiceSession} />}
+      {activeView === 'english-course' && <EnglishCourse startVoiceSession={startVoiceSession} />}
+      {activeView === 'dashboard' && <Dashboard setView={handleSetView} />}
+      {activeView === 'finances' && <Finances startVoiceSession={startVoiceSession} />}
+      {activeView === 'tasks' && <Tasks startVoiceSession={startVoiceSession} />}
+      {activeView === 'inventory' && <Inventory startVoiceSession={startVoiceSession} />}
+      {activeView === 'shopping' && <Shopping startVoiceSession={startVoiceSession} />}
+      {activeView === 'learning' && <Learning />}
+      {activeView === 'essence' && <Essence />}
+      {activeView === 'babysitter' && <Babysitter startVoiceSession={startVoiceSession} />}
+      {activeView === 'text-chat' && <TextChat messages={messages} />}
+      {activeView === 'family' && <Family />}
+    </main>
+
+    <LanguageModal isOpen={isLanguageModalOpen} onClose={() => setIsLanguageModalOpen(false)} onSelect={handleLanguageChange} />
+  </div>
+);
+
 };
 
 export default App;

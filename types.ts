@@ -1,24 +1,41 @@
-export type View = 'home' | 'dashboard' | 'family' | 'shopping' | 'text-chat' | 'finances' | 'tasks' | 'inventory' | 'learning' | 'english-course' | 'sync-kids' | 'essence' | 'babysitter' | 'nutritionist' | 'personal-trainer';
+// types.ts – Tipagens da aplicação
 
-export type Language = 'pt-BR' | 'en-US' | 'es-ES';
+export type View =
+  | "home"
+  | "dashboard"
+  | "shopping"
+  | "family"
+  | "finances"
+  | "tasks"
+  | "inventory"
+  | "learning"
+  | "english-course"
+  | "sync-kids"
+  | "essence"
+  | "babysitter"
+  | "nutritionist"
+  | "personal-trainer"
+  | "text-chat";
 
 export interface Message {
-    id: string;
-    role: 'user' | 'model';
-    text: string;
-    timestamp: number;
+  id: string;
+  role: "user" | "model";
+  text: string;
+  timestamp: number;
 }
 
 export interface Contact {
-    id: number;
-    name: string;
-    relationship: string;
-    phone: string;
-    whatsapp: string;
-    email: string;
+  id: number;
+  name: string;
+  relationship: string;
+  phone: string;
+  whatsapp?: string;
+  email?: string;
 }
 
+export type Language = "pt-BR" | "pt-PT" | "en-US" | "es-ES";
+
 export interface Session {
-    sendRealtimeInput: (input: { media: { data: string; mimeType: string } }) => void;
-    close: () => void;
+  close: () => void;
+  sendRealtimeInput: (data: any) => void;
 }
