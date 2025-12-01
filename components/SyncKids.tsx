@@ -8,7 +8,6 @@ interface SyncKidsProps {
     startVoiceSession: () => void;
 }
 
-// --- KID'S ADVENTURE DATA ---
 const ADVENTURES = [
     { id: 1, title: 'Floresta Encantada', emoji: '🌲', color: 'from-emerald-400 to-green-500', locked: false, scene: 'A magical forest with talking animals and glowing mushrooms, cartoon style.' },
     { id: 2, title: 'Mundo dos Dinos', emoji: '🦕', color: 'from-orange-400 to-amber-500', locked: true, scene: 'A friendly dinosaur park with baby dinos playing, cartoon style.' },
@@ -23,7 +22,6 @@ export const SyncKids: React.FC<SyncKidsProps> = ({ voiceState, startVoiceSessio
     const [generatedScene, setGeneratedScene] = useState<string | null>(null);
     const [isLoadingScene, setIsLoadingScene] = useState(false);
 
-    // Generate Cartoon Scene when entering an adventure
     useEffect(() => {
         if (viewMode === 'adventure' && !generatedScene) {
             generateCartoonScene(currentAdventure.scene);
@@ -33,8 +31,9 @@ export const SyncKids: React.FC<SyncKidsProps> = ({ voiceState, startVoiceSessio
     const generateCartoonScene = async (promptDescription: string) => {
         setIsLoadingScene(true);
         try {
-            // FIX: Use process.env.API_KEY
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const apiKey = process.env.API_KEY;
+            if (!apiKey) throw new Error("API Key not found");
+            const ai = new GoogleGenAI({ apiKey });
             const prompt = `Cute colorful 3d pixar style illustration of ${promptDescription}, vibrant colors, happy atmosphere.`;
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash-image',
@@ -64,7 +63,6 @@ export const SyncKids: React.FC<SyncKidsProps> = ({ voiceState, startVoiceSessio
 
     return (
         <div className="flex flex-col h-full bg-[#fdf2f8] font-sans relative overflow-hidden">
-             {/* --- KID'S HUD --- */}
              <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 p-4 flex justify-between items-center z-30 shadow-sm">
                 <div className="flex items-center gap-2 bg-yellow-100 px-3 py-1.5 rounded-full border border-yellow-200">
                     <StarIcon className="w-6 h-6 text-yellow-500 fill-yellow-500 animate-spin-slow" />
@@ -76,7 +74,6 @@ export const SyncKids: React.FC<SyncKidsProps> = ({ voiceState, startVoiceSessio
             </header>
 
             <main className="flex-1 overflow-y-auto relative">
-                 {/* --- MAP VIEW --- */}
                  {viewMode === 'map' && (
                     <div className="p-8 pb-20 flex flex-col items-center gap-12 min-h-full bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')]">
                         <div className="text-center">
@@ -108,7 +105,6 @@ export const SyncKids: React.FC<SyncKidsProps> = ({ voiceState, startVoiceSessio
                     </div>
                  )}
 
-                {/* --- ADVENTURE VIEW --- */}
                 {viewMode === 'adventure' && (
                     <div className="h-full flex flex-col bg-white">
                         <ModuleHeader 
@@ -120,7 +116,6 @@ export const SyncKids: React.FC<SyncKidsProps> = ({ voiceState, startVoiceSessio
                             onAvatarClick={startVoiceSession}
                         />
 
-                        {/* Magical Scene Area */}
                         <div className="relative h-[45%] w-full bg-pink-50 overflow-hidden">
                             {isLoadingScene ? (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-pink-50">
@@ -139,7 +134,6 @@ export const SyncKids: React.FC<SyncKidsProps> = ({ voiceState, startVoiceSessio
                             </div>
                         </div>
 
-                        {/* Interaction Area */}
                         <div className="flex-1 p-6 flex flex-col items-center justify-center text-center space-y-8 bg-white rounded-t-[30px] -mt-6 relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
                              {voiceState === 'idle' ? (
                                 <div className="space-y-6 max-w-sm w-full animate-fade-in">

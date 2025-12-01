@@ -8,7 +8,6 @@ interface EnglishCourseProps {
     startVoiceSession: () => void;
 }
 
-// --- CURRICULUM DATA ---
 const LEVELS = [
     { id: 1, title: 'Introduction', subtitle: 'Greetings & Basics', color: 'from-blue-500 to-cyan-400', locked: false, scene: 'A friendly cafe in New York City, morning light.' },
     { id: 2, title: 'Travel', subtitle: 'Airports & Hotels', color: 'from-purple-500 to-pink-500', locked: true, scene: 'Busy Heathrow Airport terminal, modern architecture.' },
@@ -25,7 +24,6 @@ export const EnglishCourse: React.FC<EnglishCourseProps> = ({ voiceState, startV
     const [generatedScene, setGeneratedScene] = useState<string | null>(null);
     const [isLoadingScene, setIsLoadingScene] = useState(false);
 
-    // Generate Scene Image when entering a lesson
     useEffect(() => {
         if (viewMode === 'lesson' && !generatedScene) {
             generateSceneImage(currentLevel.scene);
@@ -35,8 +33,9 @@ export const EnglishCourse: React.FC<EnglishCourseProps> = ({ voiceState, startV
     const generateSceneImage = async (promptDescription: string) => {
         setIsLoadingScene(true);
         try {
-            // FIX: Use process.env.API_KEY
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const apiKey = process.env.API_KEY;
+            if (!apiKey) throw new Error("API Key not found");
+            const ai = new GoogleGenAI({ apiKey });
             const prompt = `Cinematic concept art of ${promptDescription}, immersive atmosphere, 4k, trending on artstation, no text.`;
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash-image',
@@ -66,7 +65,6 @@ export const EnglishCourse: React.FC<EnglishCourseProps> = ({ voiceState, startV
 
     return (
         <div className="flex flex-col h-full bg-[#0f172a] text-white font-sans relative overflow-hidden">
-            {/* --- HUD (Heads Up Display) --- */}
             <header className="bg-slate-900/80 backdrop-blur-md border-b border-white/5 p-3 flex justify-between items-center z-30">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded-full border border-white/5">
@@ -84,10 +82,7 @@ export const EnglishCourse: React.FC<EnglishCourseProps> = ({ voiceState, startV
                 </div>
             </header>
 
-            {/* --- MAIN CONTENT SWITCH --- */}
             <main className="flex-1 overflow-y-auto relative">
-                
-                {/* --- MAP VIEW --- */}
                 {viewMode === 'map' && (
                     <div className="p-8 pb-20 flex flex-col items-center gap-8 min-h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed">
                         <div className="text-center mb-4">
@@ -112,7 +107,6 @@ export const EnglishCourse: React.FC<EnglishCourseProps> = ({ voiceState, startV
                                     <StarIcon className="w-10 h-10 text-white fill-white animate-bounce-slow" />
                                 )}
                                 
-                                {/* Level Label */}
                                 <div className="absolute -bottom-10 w-40 text-center">
                                     <span className={`block font-bold text-sm ${level.locked ? 'text-slate-500' : 'text-white'}`}>{level.title}</span>
                                     {!level.locked && <span className="text-[10px] text-blue-300">{level.subtitle}</span>}
@@ -122,7 +116,6 @@ export const EnglishCourse: React.FC<EnglishCourseProps> = ({ voiceState, startV
                     </div>
                 )}
 
-                {/* --- LESSON VIEW (IMMERSIVE) --- */}
                 {viewMode === 'lesson' && (
                     <div className="h-full flex flex-col">
                         <ModuleHeader 
@@ -134,7 +127,6 @@ export const EnglishCourse: React.FC<EnglishCourseProps> = ({ voiceState, startV
                             onAvatarClick={startVoiceSession}
                         />
 
-                        {/* Immersive Scene Area */}
                         <div className="relative h-[40%] w-full bg-black">
                             {isLoadingScene ? (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900">
@@ -154,7 +146,6 @@ export const EnglishCourse: React.FC<EnglishCourseProps> = ({ voiceState, startV
                             </div>
                         </div>
 
-                        {/* Interaction Area */}
                         <div className="flex-1 p-6 flex flex-col items-center justify-center text-center space-y-6 bg-[#0f172a]">
                             
                             {voiceState === 'idle' ? (
@@ -171,7 +162,6 @@ export const EnglishCourse: React.FC<EnglishCourseProps> = ({ voiceState, startV
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center space-y-4 w-full">
-                                    {/* Live Feedback Placeholder (simulated via voice state) */}
                                     <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-500 ${voiceState === 'speaking' ? 'bg-blue-500/20 scale-110 shadow-[0_0_50px_rgba(59,130,246,0.5)]' : 'bg-slate-800'}`}>
                                         <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center ${voiceState === 'listening' ? 'animate-pulse' : ''}`}>
                                             <EnglishIcon className="w-10 h-10 text-white" />

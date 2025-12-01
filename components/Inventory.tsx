@@ -33,10 +33,10 @@ export const Inventory: React.FC<InventoryProps> = ({ voiceState, startVoiceSess
         setAnalysis(null);
         setGeneratedRecipeImage(null);
         try {
-            // FIX: Use process.env.API_KEY
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const apiKey = process.env.API_KEY;
+            if (!apiKey) throw new Error("API Key not found");
+            const ai = new GoogleGenAI({ apiKey });
             
-            // 1. Vision Analysis: Chef Mode
             const prompt = `Você é a Chef Sync, especialista em gastronomia. Analise esta imagem da geladeira/despensa. Identifique os ingredientes principais. Sugira 1 receita sofisticada mas possível de fazer com esses itens. Seja breve e entusiasta. Retorne o nome do prato em negrito.`;
             
             const response = await ai.models.generateContent({
@@ -52,16 +52,13 @@ export const Inventory: React.FC<InventoryProps> = ({ voiceState, startVoiceSess
             const text = response.text || "Não consegui identificar os alimentos.";
             setAnalysis(text);
 
-            // 2. Ultra-Realistic Image Generation of the Suggested Dish
-            // Extract a likely title from the text (assuming bold or first line) or just use the whole context for the prompt
             const imagePrompt = `Ultra realistic, 4k, michelin star plating food photography of: ${text.slice(0, 150)}... cinematic lighting, macro shot.`;
             
             const imageResponse = await ai.models.generateContent({
-                model: 'gemini-2.5-flash-image', // Using flash-image for generation
+                model: 'gemini-2.5-flash-image',
                 contents: { parts: [{ text: imagePrompt }] }
             });
 
-            // Handle image response (iterate parts)
             if (imageResponse.candidates?.[0]?.content?.parts) {
                 for (const part of imageResponse.candidates[0].content.parts) {
                     if (part.inlineData) {
@@ -106,7 +103,6 @@ export const Inventory: React.FC<InventoryProps> = ({ voiceState, startVoiceSess
                     </div>
                 ) : (
                     <div className="w-full max-w-lg space-y-6 animate-fade-in pb-20">
-                        {/* Captured Image */}
                         <div className="relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl h-64 w-full">
                             <img src={image} alt="Fridge" className="w-full h-full object-cover" />
                             {isAnalyzing && (
@@ -117,7 +113,6 @@ export const Inventory: React.FC<InventoryProps> = ({ voiceState, startVoiceSess
                             )}
                         </div>
 
-                        {/* Analysis Result */}
                         {analysis && (
                             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-xl">
                                 <div className="flex items-center gap-2 mb-3 text-purple-300">
@@ -128,7 +123,6 @@ export const Inventory: React.FC<InventoryProps> = ({ voiceState, startVoiceSess
                             </div>
                         )}
 
-                        {/* Generated Recipe Image */}
                         {generatedRecipeImage && (
                             <div className="space-y-2">
                                 <h3 className="text-sm font-bold text-center text-purple-300 uppercase tracking-widest">Como vai ficar:</h3>
