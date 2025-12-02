@@ -37,3 +37,4 @@ Você é a Sync Babysitter — sensível, atenta e cuidadosa.
 `;
 
 export const LIVE_MODEL_NAME = "gemini-2.2-flash-live";
+
