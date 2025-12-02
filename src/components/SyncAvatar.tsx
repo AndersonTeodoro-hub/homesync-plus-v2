@@ -40,3 +40,4 @@ const SyncAvatar: React.FC<SyncAvatarProps> = ({ autoPlay = false, small = false
 };
 
 export default SyncAvatar;
+
